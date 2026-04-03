@@ -1,0 +1,68 @@
+{
+  "ticker": "TSLA",
+  "analysis_date": "2026-02-12 22:44:57",
+  "data_range": {
+    "start": "2019-01-01",
+    "end": "2026-02-12"
+  },
+  "current_metrics": {
+    "last_price": 417.07000732421875,
+    "daily_volatility": 0.04020158288008893,
+    "annualized_volatility": 0.6381803436712026,
+    "current_rsi": 37.02020802377414,
+    "vix_current": 20.81999969482422
+  },
+  "monte_carlo_simulation": {
+    "num_simulations": 10000,
+    "forecast_days": 100,
+    "expected_price": 416.6589259250552,
+    "confidence_interval_95": {
+      "lower": 175.94001910205648,
+      "upper": 830.2627397060517
+    },
+    "potential_return": -0.09856412399465257,
+    "downside_risk": -57.8152310134146,
+    "upside_potential": 99.07035392756694
+  },
+  "moving_averages": {
+    "simple": {
+      "20": 425.7839981079102,
+      "50": 444.18420043945315,
+      "200": 384.5346499633789
+    },
+    "exponential": {
+      "20": 425.6132179794159
+    }
+  },
+  "technical_indicators": {
+    "rsi_14": 37.02020802377414,
+    "rsi_interpretation": "Neutral"
+  },
+  "garch_model": {
+    "model_type": "GARCH(1,1)",
+    "parameters": {
+      "omega": 3.337430792184757e-05,
+      "alpha": 0.04999704525190155,
+      "beta": 0.9300042323701421
+    },
+    "conditional_volatility_latest": 0.029781410477640453,
+    "annualized_volatility": 0.4727652348994198,
+    "persistence": 0.9800012776220436
+  },
+  "value_at_risk": {
+    "var_95_percent": {
+      "value": 0.32979861947179046,
+      "interpretation": "95% confidence: Maximum expected loss is $0.33 per $1 invested"
+    },
+    "var_99_percent": {
+      "value": 0.46644048120668385,
+      "interpretation": "99% confidence: Maximum expected loss is $0.47 per $1 invested"
+    }
+  },
+  "performance": {
+    "daily_return_latest": -0.02615168463063977,
+    "avg_daily_return": 0.0024907242857740044,
+    "avg_monthly_return": 0.0546329183894658,
+    "sharpe_ratio": 0.6633120941632201
+  }
+}
