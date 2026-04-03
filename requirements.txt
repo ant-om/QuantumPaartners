@@ -1,0 +1,11 @@
+flask
+gunicorn
+numpy
+pandas
+scipy
+yfinance
+arch
+statsmodels
+fear-and-greed
+matplotlib
+seaborn
