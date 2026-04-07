@@ -8,7 +8,6 @@ from arch import arch_model
 import math
 import fear_and_greed
 
-git
 app = Flask(__name__)
 
 
@@ -89,17 +88,27 @@ def health():
     return jsonify({"status": "healthy", "message": "Stock Analysis API is running"})
 
 
+@app.route('/analyze/<ticker>', methods=['GET'])
+def analyze_get(ticker):
+    """GET shorthand: /analyze/TSLA  (simulations=10000, days=100 defaults)"""
+    return analyze_ticker(ticker, simulations=10000, days=100)
+
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    """
-    Main analysis endpoint
-    Expects JSON: {"ticker": "TSLA", "simulations": 10000, "days": 100}
-    """
+    """POST: {"ticker": "TSLA", "simulations": 10000, "days": 100}"""
+    data = request.json
+    return analyze_ticker(
+        data.get('ticker', 'TSLA'),
+        simulations=data.get('simulations', 10000),
+        days=data.get('days', 100)
+    )
+
+
+def analyze_ticker(ticker_sym, simulations=10000, days=100):
     try:
-        data = request.json
-        ticker_sym = data.get('ticker', 'TSLA')
-        num_simulations = data.get('simulations', 10000)
-        num_days = data.get('days', 100)
+        num_simulations = simulations
+        num_days = days
 
         # Fetch stock data
         start_date = datetime(2019, 1, 1)
