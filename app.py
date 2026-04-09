@@ -6,10 +6,15 @@ import yfinance as yf
 from datetime import datetime
 from arch import arch_model
 import math
-import fear_and_greed
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(name)s: %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
 
 # === HELPER FUNCTIONS (from your original code) ===
 
@@ -76,7 +81,8 @@ def safe_float(value):
         else:
             val = value
         return None if pd.isna(val) else float(val)
-    except:
+    except (ValueError, TypeError, IndexError):
+        logger.warning(f"Could not convert value to float: {value}")
         return None
 
 
@@ -113,10 +119,18 @@ def analyze_ticker(ticker_sym, simulations=10000, days=100):
         # Fetch stock data
         start_date = datetime(2019, 1, 1)
         end_date = datetime.now()
-        stock_data = yf.download(ticker_sym, start=start_date, end=end_date, progress=False)
+        logger.info(f"Fetching data for {ticker_sym} from {start_date.date()} to {end_date.date()}")
+        try:
+            stock_data = yf.download(ticker_sym, start=start_date, end=end_date, progress=False)
+        except Exception as e:
+            logger.error(f"yfinance download failed for {ticker_sym}: {e}", exc_info=True)
+            return jsonify({"error": f"Failed to fetch market data for {ticker_sym}"}), 500
 
         if stock_data.empty:
+            logger.warning(f"No data returned for ticker: {ticker_sym}")
             return jsonify({"error": f"No data found for ticker {ticker_sym}"}), 404
+
+        logger.info(f"Fetched {len(stock_data)} rows for {ticker_sym}")
 
         # Calculate metrics
         log_return = log_returns(stock_data)
@@ -140,7 +154,13 @@ def analyze_ticker(ticker_sym, simulations=10000, days=100):
 
         # GARCH Model
         garch_norm = arch_model(log_return, p=1, q=1, mean='constant', vol='GARCH', dist='normal')
-        garch_norm_result = garch_norm.fit(disp='off')
+        try:
+            logger.info(f"Fitting GARCH(1,1) for {ticker_sym} with {len(log_return)} observations")
+            garch_norm_result = garch_norm.fit(disp='off')
+            logger.info(f"GARCH fit complete. Persistence: {garch_norm_result.params['alpha[1]'] + garch_norm_result.params['beta[1]']:.4f}")
+        except Exception as e:
+            logger.error(f"GARCH fitting failed for {ticker_sym}: {e}", exc_info=True)
+            return jsonify({"error": "GARCH model fitting failed"}), 500
 
         # VaR
         stock_vol = volatility_calc(log_return)
@@ -223,11 +243,13 @@ def analyze_ticker(ticker_sym, simulations=10000, days=100):
         return jsonify(output_data)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.exception(f"Unhandled error analyzing {ticker_sym} (simulations={num_simulations}, days={num_days})")
+        return jsonify({"error": "Internal server error"}), 500
 
 
 if __name__ == '__main__':
     import os
 
     port = int(os.environ.get('PORT', 8080))
+    logger.info(f"Starting Stock Analysis API on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
