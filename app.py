@@ -132,6 +132,10 @@ def analyze_ticker(ticker_sym, simulations=10000, days=100):
 
         logger.info(f"Fetched {len(stock_data)} rows for {ticker_sym}")
 
+        # Flatten MultiIndex columns (yfinance returns ticker-level column index)
+        if isinstance(stock_data.columns, pd.MultiIndex):
+            stock_data.columns = stock_data.columns.get_level_values(0)
+
         # Calculate metrics
         log_return = log_returns(stock_data)
         last_price = float(stock_data['Close'].iloc[-1])
