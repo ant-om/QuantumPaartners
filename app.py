@@ -96,8 +96,8 @@ def health():
 
 @app.route('/analyze/<ticker>', methods=['GET'])
 def analyze_get(ticker):
-    """GET shorthand: /analyze/TSLA  (simulations=10000, days=100 defaults)"""
-    return analyze_ticker(ticker, simulations=10000, days=100)
+    """GET shorthand: /analyze/TSLA  (simulations=1000, days=2 defaults)"""
+    return analyze_ticker(ticker, simulations=1000, days=2)
 
 
 @app.route('/analyze', methods=['POST'])
