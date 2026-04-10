@@ -106,8 +106,8 @@ def analyze():
     data = request.json
     return analyze_ticker(
         data.get('ticker', 'TSLA'),
-        simulations=data.get('simulations', 10000),
-        days=data.get('days', 100)
+        simulations=data.get('simulations', 1000),
+        days=data.get('days', 2)
     )
 
 
