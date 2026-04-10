@@ -111,7 +111,7 @@ def analyze():
     )
 
 
-def analyze_ticker(ticker_sym, simulations=10000, days=100):
+def analyze_ticker(ticker_sym, simulations=1000, days=2):
     try:
         num_simulations = simulations
         num_days = days
