@@ -77,6 +77,122 @@ def simple_exp_ma(data, windows):
     return smas, ewms
 
 
+# ----- Bollinger Bands -----
+def bollinger_bands(close, window=20, n_std=2):
+    mid = close.rolling(window).mean()
+    sd = close.rolling(window).std(ddof=0)
+    upper = mid + n_std * sd
+    lower = mid - n_std * sd
+    return mid, upper, lower
+
+
+def build_bollinger_payload(close, last_price, window=20, n_std=2):
+    mid, upper, lower = bollinger_bands(close, window, n_std)
+    u = safe_float(upper.iloc[-1])
+    m = safe_float(mid.iloc[-1])
+    l = safe_float(lower.iloc[-1])
+    # %B = where price sits inside the band (0 = lower, 1 = upper); bandwidth = width / mid
+    pct_b = (last_price - l) / (u - l) if (u is not None and l is not None and u != l) else None
+    bandwidth = (u - l) / m if (u is not None and l is not None and m not in (None, 0)) else None
+    return {
+        "window": window,
+        "n_std": n_std,
+        "upper": u,
+        "middle": m,
+        "lower": l,
+        "pct_b": safe_float(pct_b),
+        "bandwidth": safe_float(bandwidth),
+    }
+
+
+# ----- MACD -----
+def calculate_macd(close, fast=12, slow=26, signal=9):
+    ema_fast = close.ewm(span=fast, adjust=False).mean()
+    ema_slow = close.ewm(span=slow, adjust=False).mean()
+    macd_line = ema_fast - ema_slow
+    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    hist = macd_line - signal_line
+    return macd_line, signal_line, hist
+
+
+def build_macd_payload(close, fast=12, slow=26, signal=9):
+    macd_line, signal_line, hist = calculate_macd(close, fast, slow, signal)
+    return {
+        "fast": fast,
+        "slow": slow,
+        "signal": signal,
+        "macd_last": safe_float(macd_line.iloc[-1]),
+        "signal_last": safe_float(signal_line.iloc[-1]),
+        "histogram_last": safe_float(hist.iloc[-1]),
+        "crossover": "bullish" if macd_line.iloc[-1] > signal_line.iloc[-1] else "bearish",
+    }
+
+
+# ----- EMA 50/200 golden / death crosses -----
+def last_ma_cross(fast, slow):
+    """Most recent crossover of two MAs. fast over slow = golden; fast under slow = death."""
+    diff = (fast - slow).dropna()
+    sign = np.sign(diff)
+    changes = sign.diff().fillna(0)
+    crosses = changes[changes != 0]
+    if len(crosses) == 0:
+        return {"last_cross_type": None, "last_cross_date": None, "days_since_last_cross": None}
+    last_idx = crosses.index[-1]
+    return {
+        "last_cross_type": "golden" if changes.loc[last_idx] > 0 else "death",
+        "last_cross_date": last_idx.strftime("%Y-%m-%d"),
+        "days_since_last_cross": int((diff.index[-1] - last_idx).days),
+    }
+
+
+def crosses_in_window(fast, slow, lookback_days=90):
+    """All golden/death crosses within the trailing `lookback_days` calendar days."""
+    diff = (fast - slow).dropna()
+    sign = np.sign(diff)
+    changes = sign.diff().fillna(0)
+    crosses = changes[changes != 0]
+    if len(crosses) == 0:
+        return []
+    cutoff = diff.index[-1] - pd.Timedelta(days=lookback_days)
+    recent = crosses[crosses.index >= cutoff]
+    return [
+        {
+            "type": "golden" if val > 0 else "death",
+            "date": idx.strftime("%Y-%m-%d"),
+            "days_ago": int((diff.index[-1] - idx).days),
+        }
+        for idx, val in recent.items()
+    ]
+
+
+def build_golden_death_cross(ema_50, ema_200, lookback_days=90):
+    crosses = crosses_in_window(ema_50, ema_200, lookback_days)
+    return {
+        "current_state": "golden" if ema_50.iloc[-1] > ema_200.iloc[-1] else "death",
+        **last_ma_cross(ema_50, ema_200),
+        "crosses_last_3m": crosses,
+        "n_golden_last_3m": sum(1 for c in crosses if c["type"] == "golden"),
+        "n_death_last_3m": sum(1 for c in crosses if c["type"] == "death"),
+    }
+
+
+# ----- CNN Fear & Greed sentiment -----
+def fetch_fear_greed():
+    url = "https://production.dataviz.cnn.com/index/fearandgreed/graphdata"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; stock-analysis/1.0)"}
+    r = requests.get(url, headers=headers, timeout=30)
+    r.raise_for_status()
+    fg = r.json().get("fear_and_greed", {})
+    return {
+        "score": safe_float(fg.get("score")),
+        "rating": fg.get("rating"),
+        "previous_close": safe_float(fg.get("previous_close")),
+        "previous_1_week": safe_float(fg.get("previous_1_week")),
+        "previous_1_month": safe_float(fg.get("previous_1_month")),
+        "previous_1_year": safe_float(fg.get("previous_1_year")),
+    }
+
+
 # ----- RSI -----
 def calculate_rsi(close, days=14):
     diff = close.diff(1)
@@ -307,6 +423,12 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
 
         # --- Moving averages ---
         smas, ewms = simple_exp_ma(close, [20, 50, 200])
+        ema_50, ema_200 = ewms[50], ewms[200]
+
+        # --- Bollinger Bands / MACD / golden-death cross ---
+        bollinger_payload = build_bollinger_payload(close, last_price, 20, 2)
+        macd_payload = build_macd_payload(close)
+        golden_death_cross = build_golden_death_cross(ema_50, ema_200, 90)
 
         # --- RSI payload ---
         rsi_payload = build_rsi_payload(close)
@@ -377,11 +499,26 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
 
         # --- VIX coupling (network; degrade gracefully) ---
         vix_coupling = None
+        vix_levels = None
         try:
             vix_data = yf.Ticker("^VIX").history(start=start_date, end=end_date)
             if vix_data.index.tz is not None:
                 vix_data.index = vix_data.index.tz_localize(None)
             vix_close = vix_data['Close']
+
+            # --- Absolute VIX levels + trailing 30-day series ---
+            vix_clean = vix_close.dropna()
+            vix_levels = {
+                "vix_level_last": safe_float(vix_clean.iloc[-1]),
+                "vix_mean_30d": safe_float(vix_clean.tail(30).mean()),
+                "vix_min_30d": safe_float(vix_clean.tail(30).min()),
+                "vix_max_30d": safe_float(vix_clean.tail(30).max()),
+                "vix_pctile_in_sample": safe_float((vix_clean <= vix_clean.iloc[-1]).mean()),
+                "vix_last_30d": [
+                    {"date": idx.strftime("%Y-%m-%d"), "vix": safe_float(val)}
+                    for idx, val in vix_clean.tail(30).items()
+                ],
+            }
 
             combined = pd.concat([
                 daily_returns.rename('stock'),
@@ -420,13 +557,28 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
         except Exception as e:
             logger.warning(f"VIX coupling step failed for {ticker_sym}: {e}")
             vix_coupling = {"error": "VIX data unavailable"}
+            if vix_levels is None:
+                vix_levels = {"error": "VIX data unavailable"}
+
+        # --- CNN Fear & Greed sentiment (network; degrade gracefully) ---
+        try:
+            fear_greed = fetch_fear_greed()
+        except Exception as e:
+            logger.warning(f"Fear & Greed step failed for {ticker_sym}: {e}")
+            fear_greed = {"error": "Fear & Greed data unavailable"}
 
         # --- Assemble analyst-ready payload ---
         output_data = {
             "ticker": ticker_sym,
             "analysis_date": end_date.strftime("%Y-%m-%d %H:%M:%S"),
             "sample": {"start": str(start_date.date()), "end": str(end_date.date())},
-            "price": {"last_close": last_price},
+            "price": {
+                "last_close": last_price,
+                "last_30d_close": [
+                    {"date": idx.strftime("%Y-%m-%d"), "close": safe_float(val)}
+                    for idx, val in close.dropna().tail(30).items()
+                ],
+            },
             "returns": {
                 "annualized_rf_from_ff": rf_annual,
                 "sharpe_daily_annualized": safe_float(sharpe_daily),
@@ -466,13 +618,22 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
                 "upside_potential_pct": float((mc_upper - last_price) / last_price * 100),
             },
             "factor_model": factor_model,
+            "vix_levels": vix_levels,
             "vix_coupling": vix_coupling,
+            "sentiment": {
+                "fear_and_greed": fear_greed,
+            },
             "technicals": {
                 "RSI": rsi_payload,
                 "SMA_20_last": safe_float(smas[20].dropna().iloc[-1]),
                 "SMA_50_last": safe_float(smas[50].dropna().iloc[-1]),
                 "SMA_200_last": safe_float(smas[200].dropna().iloc[-1]),
                 "EWM_20_last": safe_float(ewms[20].dropna().iloc[-1]),
+                "EMA_50_last": safe_float(ema_50.iloc[-1]),
+                "EMA_200_last": safe_float(ema_200.iloc[-1]),
+                "golden_death_cross": golden_death_cross,
+                "bollinger_bands": bollinger_payload,
+                "MACD": macd_payload,
             },
         }
 
