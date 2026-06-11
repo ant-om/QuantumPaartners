@@ -175,24 +175,6 @@ def build_golden_death_cross(ema_50, ema_200, lookback_days=90):
         "n_death_last_3m": sum(1 for c in crosses if c["type"] == "death"),
     }
 
-
-# ----- CNN Fear & Greed sentiment -----
-def fetch_fear_greed():
-    url = "https://production.dataviz.cnn.com/index/fearandgreed/graphdata"
-    headers = {"User-Agent": "Mozilla/5.0 (compatible; stock-analysis/1.0)"}
-    r = requests.get(url, headers=headers, timeout=30)
-    r.raise_for_status()
-    fg = r.json().get("fear_and_greed", {})
-    return {
-        "score": safe_float(fg.get("score")),
-        "rating": fg.get("rating"),
-        "previous_close": safe_float(fg.get("previous_close")),
-        "previous_1_week": safe_float(fg.get("previous_1_week")),
-        "previous_1_month": safe_float(fg.get("previous_1_month")),
-        "previous_1_year": safe_float(fg.get("previous_1_year")),
-    }
-
-
 # ----- RSI -----
 def calculate_rsi(close, days=14):
     diff = close.diff(1)
@@ -560,12 +542,6 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
             if vix_levels is None:
                 vix_levels = {"error": "VIX data unavailable"}
 
-        # --- CNN Fear & Greed sentiment (network; degrade gracefully) ---
-        try:
-            fear_greed = fetch_fear_greed()
-        except Exception as e:
-            logger.warning(f"Fear & Greed step failed for {ticker_sym}: {e}")
-            fear_greed = {"error": "Fear & Greed data unavailable"}
 
         # --- Assemble analyst-ready payload ---
         output_data = {
@@ -620,9 +596,6 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
             "factor_model": factor_model,
             "vix_levels": vix_levels,
             "vix_coupling": vix_coupling,
-            "sentiment": {
-                "fear_and_greed": fear_greed,
-            },
             "technicals": {
                 "RSI": rsi_payload,
                 "SMA_20_last": safe_float(smas[20].dropna().iloc[-1]),
