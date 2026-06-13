@@ -1,7 +1,6 @@
 import math
 import io
 import re
-import time
 import zipfile
 import logging
 import requests
@@ -175,6 +174,7 @@ def build_golden_death_cross(ema_50, ema_200, lookback_days=90):
         "n_death_last_3m": sum(1 for c in crosses if c["type"] == "death"),
     }
 
+
 # ----- RSI -----
 def calculate_rsi(close, days=14):
     diff = close.diff(1)
@@ -283,13 +283,10 @@ def calmar_ratio(price_series, periods_per_year=252):
 
 
 # ----- Fama-French / CAPM -----
-# In-memory cache so we download each FF dataset at most once per TTL window.
-# FF factor files only update monthly, so a 24h TTL is plenty.
-_FF_CACHE = {}                 # {n_factors: (timestamp, dataframe)}
-_FF_CACHE_TTL = 24 * 60 * 60   # seconds
-
-
-def _download_fama_french(n_factors):
+# Cache layer removed per request: download the FF dataset directly on each call.
+def fetch_fama_french(n_factors=3):
+    """Download and parse the Fama-French factor dataset (no caching)."""
+    logger.info(f"Downloading Fama-French {n_factors}-factor data")
     r = requests.get(FF_URLS[n_factors], timeout=30)
     r.raise_for_status()
     with zipfile.ZipFile(io.BytesIO(r.content)) as z:
@@ -304,20 +301,6 @@ def _download_fama_french(n_factors):
     df = pd.read_csv(io.StringIO('\n'.join(lines[start:end])), index_col=0)
     df.index = pd.to_datetime(df.index.astype(str), format='%Y%m').to_period('M')
     return df.apply(pd.to_numeric, errors='coerce') / 100
-
-
-def fetch_fama_french(n_factors=3):
-    """Return the FF dataframe, served from cache unless the TTL has expired."""
-    now = time.time()
-    cached = _FF_CACHE.get(n_factors)
-    if cached is not None and (now - cached[0]) < _FF_CACHE_TTL:
-        logger.info(f"Fama-French {n_factors}-factor served from cache")
-        return cached[1]
-
-    logger.info(f"Downloading Fama-French {n_factors}-factor data")
-    df = _download_fama_french(n_factors)
-    _FF_CACHE[n_factors] = (now, df)
-    return df
 
 
 def run_fama_french(monthly_ret, n_factors=5):
@@ -479,7 +462,7 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
         mdd, peak_date, trough_date = max_drawdown(close)
         calmar = calmar_ratio(close)
 
-        # --- VIX coupling (network; degrade gracefully) ---
+        # --- VIX levels + coupling (network; degrade gracefully) ---
         vix_coupling = None
         vix_levels = None
         try:
@@ -537,11 +520,10 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
                 "mean_return_other_days": safe_float(mean_other),
             }
         except Exception as e:
-            logger.warning(f"VIX coupling step failed for {ticker_sym}: {e}")
+            logger.warning(f"VIX step failed for {ticker_sym}: {e}")
             vix_coupling = {"error": "VIX data unavailable"}
             if vix_levels is None:
                 vix_levels = {"error": "VIX data unavailable"}
-
 
         # --- Assemble analyst-ready payload ---
         output_data = {
