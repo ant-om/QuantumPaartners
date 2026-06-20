@@ -343,6 +343,47 @@ def analyze():
     )
 
 
+@app.route('/profile', methods=['GET', 'POST'])
+def profile():
+    """Company metadata from yfinance for the Supabase `stocks` table.
+    GET /profile?ticker=TSLA   or   POST {"ticker": "TSLA"}"""
+    if request.method == 'POST':
+        ticker_sym = (request.json or {}).get('ticker', '')
+    else:
+        ticker_sym = request.args.get('ticker', '')
+    ticker_sym = (ticker_sym or '').strip().upper()
+    if not ticker_sym:
+        return jsonify({"error": "ticker is required"}), 400
+
+    try:
+        info = yf.Ticker(ticker_sym).info or {}
+    except Exception as e:
+        logger.error(f"yfinance profile failed for {ticker_sym}: {e}", exc_info=True)
+        return jsonify({"error": f"Failed to fetch profile for {ticker_sym}"}), 500
+
+    if not (info.get('shortName') or info.get('longName') or info.get('symbol')):
+        return jsonify({"error": f"No profile found for ticker {ticker_sym}"}), 404
+
+    website = info.get('website') or ''
+    logo_url = info.get('logo_url')
+    if not logo_url and website:
+        domain = re.sub(r'^https?://(www\.)?', '', website).split('/')[0]
+        if domain:
+            logo_url = f"https://logo.clearbit.com/{domain}"
+
+    return jsonify({
+        "ticker": ticker_sym,
+        "name": info.get('longName') or info.get('shortName') or ticker_sym,
+        "exchange": info.get('fullExchangeName') or info.get('exchange'),
+        "sector": info.get('sector'),
+        "industry": info.get('industry'),
+        "country": info.get('country'),
+        "description": info.get('longBusinessSummary'),
+        "website": website or None,
+        "logo_url": logo_url,
+    })
+
+
 def analyze_ticker(ticker_sym, simulations=1000, days=3):
     num_simulations = simulations
     num_days = days
