@@ -326,6 +326,61 @@ def health():
     return jsonify({"status": "healthy", "message": "Stock Analysis API is running"})
 
 
+# ============================================================
+# Lightweight batch quotes — powers the frontend ticker tape.
+# Uses yfinance fast_info (fast, no heavy history) + a short
+# in-process cache so the tape can poll cheaply.
+# ============================================================
+import time as _time
+_QUOTE_CACHE = {}          # ticker -> (epoch, payload)
+_QUOTE_TTL = 45            # seconds
+
+
+def _one_quote(tkr):
+    """Return {ticker, price, change, change_pct} or an error marker."""
+    try:
+        fi = yf.Ticker(tkr).fast_info
+        price = float(fi['last_price'])
+        prev = float(fi['previous_close'])
+        change = price - prev
+        pct = (change / prev * 100.0) if prev else 0.0
+        return {
+            "ticker": tkr,
+            "price": round(price, 2),
+            "change": round(change, 2),
+            "change_pct": round(pct, 2),
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("quote failed for %s: %s", tkr, exc)
+        return {"ticker": tkr, "error": True}
+
+
+@app.route('/quotes', methods=['GET'])
+def quotes():
+    """Batch quotes for a ticker tape.
+    GET /quotes?tickers=AAPL,MSFT,NVDA  ->  {"quotes": [ ... ]}"""
+    raw = request.args.get('tickers', '')
+    tickers = [t.strip().upper() for t in raw.split(',') if t.strip()][:30]
+    if not tickers:
+        return jsonify({"error": "no tickers"}), 400
+
+    now = _time.time()
+    out = []
+    for t in tickers:
+        cached = _QUOTE_CACHE.get(t)
+        if cached and now - cached[0] < _QUOTE_TTL:
+            out.append(cached[1])
+        else:
+            payload = _one_quote(t)
+            _QUOTE_CACHE[t] = (now, payload)
+            out.append(payload)
+
+    resp = jsonify({"quotes": out})
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Cache-Control'] = 'public, max-age=30'
+    return resp
+
+
 @app.route('/analyze/<ticker>', methods=['GET'])
 def analyze_get(ticker):
     """GET shorthand: /analyze/TSLA  (simulations=1000, days=3 defaults)"""
