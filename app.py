@@ -472,7 +472,7 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
         daily_returns = close.pct_change().dropna()
         monthly_returns = close.resample('ME').last().pct_change().dropna()
         log_return = log_returns(stock_data)
-        last_price = float(close.iloc[-1])
+        last_price = float(close.dropna().iloc[-1])
         stock_vol = volatility_calc(log_return)
 
         # --- Monte Carlo ---
