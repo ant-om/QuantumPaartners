@@ -1,0 +1,89 @@
+<div *ngIf="loading" class="qp-loading">Loading…</div>
+
+<div *ngIf="notFound" class="qp-loading">
+  Stock not found. <a routerLink="/" class="qp-back">← Back</a>
+</div>
+
+<div *ngIf="!loading && !notFound && stock" class="qp-detail">
+
+  <a routerLink="/" class="qp-back">← All stocks</a>
+
+  <!-- Title -->
+  <div class="qp-stock-titleblock">
+    <div class="qp-stock-ticker">{{ stock.ticker }} · {{ stock.exchange }}</div>
+    <div class="qp-stock-name">{{ stock.name }}</div>
+    <div>
+      <span *ngIf="stock.sector" class="qp-badge">{{ stock.sector }}</span>
+      <span *ngIf="stock.industry" class="qp-badge">{{ stock.industry }}</span>
+      <span *ngIf="stock.country" class="qp-badge">{{ stock.country }}</span>
+      <a *ngIf="stock.website" [href]="stock.website" target="_blank" class="qp-badge-link">↗ Website</a>
+    </div>
+  </div>
+
+  <!-- Body: article -->
+  <div class="qp-body">
+    <article class="qp-article">
+
+      <!-- Infobox floated right inside the article -->
+      <div class="qp-infobox">
+        <div class="qp-infobox-head">{{ stock.ticker }}</div>
+        <div *ngIf="stock.logo_url" class="qp-infobox-logo-wrap">
+          <img [src]="stock.logo_url" [alt]="stock.name" class="qp-infobox-logo">
+        </div>
+        <div class="qp-infobox-row">
+          <span class="qp-infobox-label">Exchange</span>
+          <span class="qp-infobox-value">{{ stock.exchange }}</span>
+        </div>
+        <div class="qp-infobox-row">
+          <span class="qp-infobox-label">Sector</span>
+          <span class="qp-infobox-value">{{ stock.sector }}</span>
+        </div>
+        <div class="qp-infobox-row">
+          <span class="qp-infobox-label">Industry</span>
+          <span class="qp-infobox-value">{{ stock.industry }}</span>
+        </div>
+        <div class="qp-infobox-row">
+          <span class="qp-infobox-label">Country</span>
+          <span class="qp-infobox-value">{{ stock.country }}</span>
+        </div>
+        <div *ngIf="analysis" class="qp-infobox-row">
+          <span class="qp-infobox-label">Updated</span>
+          <span class="qp-infobox-value">{{ analysis.run_at | date:'mediumDate' }}</span>
+        </div>
+      </div>
+
+      <!-- Company intro -->
+      <p *ngIf="stock.description" class="qp-intro">{{ stock.description }}</p>
+
+      <!-- Overview / summary card -->
+      <div *ngIf="analysis?.summary as sum" appReveal id="section-summary" class="qp-summary">
+        <div class="qp-summary-head">
+          <h2 class="qp-summary-headline">{{ sum.headline }}</h2>
+          <div class="qp-summary-meta">
+            <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
+            <app-score-gauge *ngIf="sum.score !== undefined && sum.score !== null"
+                             [score]="sum.score" label="Score" [size]="60"></app-score-gauge>
+          </div>
+        </div>
+        <p *ngIf="sum.narrative" class="qp-summary-narrative">{{ sum.narrative }}</p>
+        <ul *ngIf="sum.bullets?.length" class="qp-summary-bullets">
+          <li *ngFor="let b of sum.bullets">{{ b }}</li>
+        </ul>
+      </div>
+
+      <!-- Analysis sections; charts injected into the Price Action section -->
+      <ng-container *ngFor="let s of sections">
+        <div appReveal>
+          <app-analysis-section [key]="s.key" [label]="s.label" [blocks]="blocks(s.key)"></app-analysis-section>
+          <app-metric-charts *ngIf="s.key === 'price' && analysis?.metrics"
+                             [metrics]="analysis!.metrics"></app-metric-charts>
+        </div>
+      </ng-container>
+
+    </article>
+  </div>
+
+  <!-- Floating dynamic island TOC -->
+  <app-dynamic-island-toc [sections]="tocSections"></app-dynamic-island-toc>
+
+</div>

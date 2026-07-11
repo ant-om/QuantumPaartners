@@ -1,0 +1,62 @@
+:host {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 110;
+  display: block;
+  height: var(--tape-h, 36px);
+}
+
+.tape {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(5, 7, 10, 0.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  /* fade the ends so items enter/exit softly */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+
+.tape-track {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: max-content;
+  white-space: nowrap;
+  animation: tape-scroll 60s linear infinite;
+  will-change: transform;
+}
+.tape:hover .tape-track { animation-play-state: paused; }
+
+/* track holds the list twice; shifting by -50% loops seamlessly */
+@keyframes tape-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.tape-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  border-right: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.tape-item:hover { background: rgba(255, 255, 255, 0.04); }
+
+.tape-ticker { color: var(--text); font-weight: 700; letter-spacing: 0.03em; }
+.tape-price { color: var(--text-2); font-weight: 500; }
+
+.tape-change { color: var(--text-muted); font-weight: 500; }
+.tape-change.up { color: var(--bull); }
+.tape-change.down { color: var(--bear); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-track { animation: none; }
+}

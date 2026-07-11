@@ -24,3 +24,5 @@ build/
 
 # Logs
 *.log
+# local clone of the Railway deploy repo variant (has own .git)
+PythonParserBogdan/

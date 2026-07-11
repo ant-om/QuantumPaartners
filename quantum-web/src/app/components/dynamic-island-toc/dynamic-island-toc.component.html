@@ -1,0 +1,69 @@
+<!-- Backdrop -->
+<div *ngIf="isExpanded"
+     @backdrop
+     class="di-backdrop"
+     (click)="close()">
+</div>
+
+<!-- Dynamic Island -->
+<div class="di-wrapper"
+     [@island]="isExpanded ? 'expanded' : 'collapsed'"
+     [style.cursor]="isExpanded ? 'default' : 'pointer'"
+     (click)="expand()">
+
+  <!-- Collapsed pill -->
+  <div [@pillContent]="isExpanded ? 'hide' : 'show'"
+       [style.pointer-events]="isExpanded ? 'none' : 'auto'"
+       class="di-pill">
+    <div class="di-dot"></div>
+    <span class="di-label">{{ activeLabel }}</span>
+    <svg [attr.width]="svgSize" [attr.height]="svgSize" class="di-progress-svg">
+      <circle
+        [attr.cx]="svgSize / 2"
+        [attr.cy]="svgSize / 2"
+        [attr.r]="radius"
+        fill="none"
+        stroke="rgba(255,255,255,0.12)"
+        [attr.stroke-width]="strokeWidth"/>
+      <circle
+        [attr.cx]="svgSize / 2"
+        [attr.cy]="svgSize / 2"
+        [attr.r]="radius"
+        fill="none"
+        stroke="#34d399"
+        [attr.stroke-width]="strokeWidth"
+        [attr.stroke-dasharray]="circumference"
+        [attr.stroke-dashoffset]="strokeOffset"
+        stroke-linecap="round"/>
+    </svg>
+  </div>
+
+  <!-- Expanded menu -->
+  <div [@menuContent]="isExpanded ? 'show' : 'hide'"
+       [style.pointer-events]="isExpanded ? 'auto' : 'none'"
+       class="di-menu">
+    <div class="di-menu-header">
+      <span class="di-menu-title">TABLE OF CONTENTS</span>
+      <button class="di-close-btn"
+              (click)="close(); $event.stopPropagation()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <div class="di-menu-list">
+      <button *ngFor="let s of sections"
+              class="di-item"
+              [class.di-item--active]="activeKey === s.key"
+              (mouseenter)="hoveredKey = s.key"
+              (mouseleave)="hoveredKey = null"
+              (click)="scrollTo(s.key); $event.stopPropagation()">
+        <span class="di-item-text">{{ s.label }}</span>
+        <div *ngIf="activeKey === s.key" class="di-item-dot"></div>
+      </button>
+    </div>
+  </div>
+
+</div>

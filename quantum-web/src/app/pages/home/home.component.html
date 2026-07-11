@@ -1,0 +1,98 @@
+<!-- ───────────────── Hero ───────────────── -->
+<section class="qp-home-hero">
+  <app-hero-backdrop></app-hero-backdrop>
+
+  <div class="qp-hero-content">
+    <div class="qp-eyebrow qp-hero-eyebrow">Powered by QuantumGPT</div>
+
+    <h1 class="qp-home-title">
+      Smarter equity calls,<br>
+      written by <span class="qp-accent-text">AI</span>.
+    </h1>
+
+    <p class="qp-home-sub">
+      Deep, structured analysis on every stock — macro, financials, sentiment and
+      price action, distilled into one intelligent read.
+    </p>
+
+    <input
+      [(ngModel)]="query"
+      (ngModelChange)="onSearch()"
+      class="qp-search-input"
+      type="text"
+      placeholder="Search by ticker, company or sector…"
+      autocomplete="off"
+      spellcheck="false">
+
+    <div class="qp-hero-stats qp-mono">
+      <span><b>{{ stocks.length }}</b> tickers</span>
+      <span class="qp-hero-stats-dot">·</span>
+      <span><b>7</b> analysis lenses</span>
+      <span class="qp-hero-stats-dot">·</span>
+      <span>updated <b>daily</b></span>
+    </div>
+  </div>
+
+  <div class="qp-scroll-cue" aria-hidden="true">
+    <span></span>
+  </div>
+</section>
+
+<!-- ───────────────── Carousel ───────────────── -->
+<section class="qp-home-body">
+  <div *ngIf="loading" class="qp-loading">Loading the desk…</div>
+
+  <div *ngIf="!loading">
+    <div appReveal class="qp-section-head">
+      <div class="qp-eyebrow">{{ query.trim() ? 'Search' : 'The desk' }}</div>
+      <h2 class="qp-featured-h">
+        {{ query.trim() ? 'Results for "' + query.trim() + '"' : 'Every stock we cover' }}
+      </h2>
+    </div>
+
+    <div *ngIf="filtered.length === 0" class="qp-loading">No stocks match that search.</div>
+
+    <div appReveal [revealDelay]="60">
+      <app-stock-fan *ngIf="filtered.length > 0" [stocks]="filtered"></app-stock-fan>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── How it works ───────────────── -->
+<section class="qp-how" *ngIf="!loading">
+  <div appReveal class="qp-how-head">
+    <div class="qp-eyebrow">How it works</div>
+    <h2 class="qp-how-title">From raw filings to a single, confident read.</h2>
+  </div>
+  <div class="qp-how-grid">
+    <div appReveal [revealDelay]="0" class="qp-how-card qp-glass">
+      <div class="qp-how-num qp-mono">01</div>
+      <h3 class="qp-how-card-title">Ingest</h3>
+      <p>Market data, filings and news flow into an AI pipeline built on GPT-class models and a vector knowledge base.</p>
+    </div>
+    <div appReveal [revealDelay]="90" class="qp-how-card qp-glass">
+      <div class="qp-how-num qp-mono">02</div>
+      <h3 class="qp-how-card-title">Reason</h3>
+      <p>Seven specialist lenses — macro, political, financials, competition, management, sentiment and price — each score the name.</p>
+    </div>
+    <div appReveal [revealDelay]="180" class="qp-how-card qp-glass">
+      <div class="qp-how-num qp-mono">03</div>
+      <h3 class="qp-how-card-title">Distill</h3>
+      <p>Findings collapse into a structured, sourced briefing with a clear sentiment and conviction score per section.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── Footer ───────────────── -->
+<footer class="qp-footer">
+  <div class="qp-footer-inner">
+    <a routerLink="/" class="qp-brand">
+      <span class="qp-brand-symbol">▲</span>
+      <span class="qp-brand-name">Stock<span class="qp-brand-dot">·</span>Bar</span>
+    </a>
+    <p class="qp-footer-note">
+      A <strong>Quantum Partners</strong> product · © 2026.<br>
+      AI-generated research for informational purposes only. Not investment advice.
+    </p>
+  </div>
+</footer>

@@ -1,0 +1,161 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import norm
+import yfinance as yf
+from datetime import datetime, timedelta
+from arch import arch_model
+import statsmodels as sm
+import math
+from var import VaR
+import fear_and_greed
+
+ticker_sym = "TSLA"
+
+vix_ticker_symbol = "^VIX"
+vix_ticker = yf.Ticker(vix_ticker_symbol)
+
+fear_and_greed.get()
+start_date = datetime(2019,1,1)
+end_date = datetime.now()
+
+stock_data = yf.download(ticker_sym, start=start_date,end=end_date)
+vix_data = vix_ticker.history(start=start_date, end=end_date)
+
+print(stock_data.head())
+
+print(vix_data.tail())
+
+#Returns
+daily_returns = stock_data['Close'].pct_change()
+monthly_returns = stock_data['Close'].resample('ME').ffill().pct_change()
+
+print(daily_returns)
+print(monthly_returns)
+
+
+def log_returns(stock_data):
+    # Assuming you're interested in the 'Close' prices
+    log_returns = np.log(1 + stock_data['Close'].pct_change())
+    log_returns = log_returns[1:]
+
+    return log_returns
+
+log_return = log_returns(stock_data)
+
+#Monte Carlo Sim
+
+def volatility_calc(lr):
+    daily_volatility = np.std(lr)
+    return daily_volatility
+
+num_simulations = 10000
+num_days = 100
+
+# Get the closing price for the last day of the stock data
+last_price = stock_data['Close'].iloc[-1]
+
+def run_MonteCarlo(num_simulations,num_days,last_price,log_return):
+    # Calculate daily volatility
+    daily_vol = volatility_calc(log_return)
+
+    # Initialize a list to store all simulation results
+    all_simulations = []
+
+    for x in range(num_simulations):
+        price_series = [last_price]
+
+        for y in range(1, num_days):
+            price = price_series[-1] * (1 + np.random.normal(0, daily_vol))
+            price_series.append(price)
+
+        all_simulations.append(price_series)
+
+    # Convert the list of simulations into a DataFrame all at once
+    simulation_df = pd.DataFrame(all_simulations).transpose()
+
+    return simulation_df
+
+simulation_df = run_MonteCarlo(num_simulations, num_days, last_price, log_return)
+
+# Prices at the final simulated day (across all simulations)
+day_prices = simulation_df.iloc[-1].to_numpy(dtype=float)  # <- key fix
+
+# 95% confidence interval
+lower_bound = np.percentile(day_prices, 2.5)
+upper_bound = np.percentile(day_prices, 97.5)
+
+# Mean (expected) price
+mean_price = np.mean(day_prices)
+
+print(f"The expected price for {num_days} days later is: {mean_price}")
+print(f"The 95% confidence interval for the price {num_days} days later is: ({lower_bound}, {upper_bound})")
+
+
+#Moving averages
+
+def simple_exp_ma (data, times):
+    smas = {}
+    ewms = {}
+    for i in times:
+        smas[i] = data.rolling(window=i).mean()
+        ewms[i] = data.ewm(span=i, adjust=False).mean()
+
+    return smas, ewms
+
+moving_avg = simple_exp_ma(stock_data, [2,3,4,5,20,50,100,200])
+
+
+
+
+#Relative Strength Index
+
+def calculate_rs(data):
+    # Will use the positive and negative difference values in closing prices
+    # to get an average gain and loss value (using a moving average specified as "days")
+    # for a stock, then calculate the RSI using these values
+
+
+    difference = data["Close"].diff(1) # Calculate adjusted close difference using the current row and previous row
+    difference.dropna(inplace=True) # Uses pandas method dropna to remove rows that contain NULL values
+
+    positive = difference.copy() # Create a new DF for positive differences
+    negative = difference.copy() # Create a new DF for negative differences
+
+    positive[positive < 0] = 0 # All negative values become 0 and positive values stay the same
+    negative[negative > 0] = 0 # All positive values become 0 and negative values stay the same
+
+    days = 14 # Moving average timeframe
+    avg_gain = positive.rolling(window=days).mean() # Calculates the moving average based on close price using set amount of days
+    avg_loss = abs(negative.rolling(window=days).mean()) # Calculates the moving average based on close price using set amount of days (made absolute to avoid negative numbers)
+
+    ## Calculate RSI
+    rs = avg_gain / avg_loss
+    RSI = 100.0 - (100.0 / (1.0 + rs))
+    return RSI
+
+
+rsi_ticker = calculate_rs(stock_data)
+
+print(rsi_ticker)
+#GARCH volatility
+
+# GARCH normal model
+garch_norm= arch_model(log_return, p = 1, q = 1,
+                      mean = 'constant', vol = 'GARCH', dist = 'normal')
+# Fit the model
+garch_norm_result = garch_norm.fit(update_freq = 4)
+
+# Get summary
+print(garch_norm_result.summary())
+
+#VAR
+
+def calculateVaR(risk, confidenceLevel, principal = 1, numMonths = 1):
+    vol = math.sqrt(risk)
+    return abs(principal * norm.ppf(1-confidenceLevel, 0, 1) * vol * math.sqrt(numMonths))
+
+stock_vol = volatility_calc(log_return)
+VaR_5 = calculateVaR(stock_vol, 0.05)
+VaR_1 = calculateVaR(stock_vol, 0.01)

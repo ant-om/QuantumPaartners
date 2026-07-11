@@ -1,0 +1,24 @@
+<div class="tape" role="marquee" aria-label="Live stock prices">
+  <div class="tape-track">
+    <a
+      *ngFor="let q of loop; let i = index"
+      [routerLink]="['/stock', q.ticker]"
+      class="tape-item"
+      [attr.aria-hidden]="i >= quotes.length ? 'true' : null"
+    >
+      <span class="tape-ticker">{{ q.ticker }}</span>
+      <span class="tape-price">{{ q.price != null ? (q.price | number:'1.2-2') : '—' }}</span>
+      <span
+        class="tape-change"
+        [class.up]="(q.change_pct ?? 0) > 0"
+        [class.down]="(q.change_pct ?? 0) < 0"
+      >
+        <ng-container *ngIf="q.price != null && q.change_pct != null; else flat">
+          {{ q.change_pct > 0 ? '▲' : q.change_pct < 0 ? '▼' : '·' }}
+          {{ q.change_pct >= 0 ? '+' : '' }}{{ q.change_pct | number:'1.2-2' }}%
+        </ng-container>
+        <ng-template #flat>·</ng-template>
+      </span>
+    </a>
+  </div>
+</div>
