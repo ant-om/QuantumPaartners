@@ -55,30 +55,65 @@
       <!-- Company intro -->
       <p *ngIf="stock.description" class="qp-intro">{{ stock.description }}</p>
 
-      <!-- Overview / summary card -->
+      <!-- Score anchor: the single headline score (Danelfin-style) -->
       <div *ngIf="analysis?.summary as sum" appReveal id="section-summary" class="qp-summary">
-        <div class="qp-summary-head">
-          <h2 class="qp-summary-headline">{{ sum.headline }}</h2>
-          <div class="qp-summary-meta">
-            <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
-            <app-score-gauge *ngIf="sum.score !== undefined && sum.score !== null"
-                             [score]="sum.score" label="Score" [size]="60"></app-score-gauge>
+        <div class="qp-score-anchor">
+          <div class="qp-score-anchor-gauge" *ngIf="sum.score !== undefined && sum.score !== null">
+            <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
+          </div>
+          <div>
+            <div class="qp-summary-head">
+              <h2 class="qp-summary-headline">{{ sum.headline }}</h2>
+              <div class="qp-summary-meta">
+                <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
+              </div>
+            </div>
+            <p *ngIf="sum.narrative" class="qp-summary-narrative">{{ sum.narrative }}</p>
+            <ul *ngIf="sum.bullets?.length" class="qp-summary-bullets">
+              <li *ngFor="let b of sum.bullets">{{ b }}</li>
+            </ul>
           </div>
         </div>
-        <p *ngIf="sum.narrative" class="qp-summary-narrative">{{ sum.narrative }}</p>
-        <ul *ngIf="sum.bullets?.length" class="qp-summary-bullets">
-          <li *ngFor="let b of sum.bullets">{{ b }}</li>
-        </ul>
       </div>
 
-      <!-- Analysis sections; charts injected into the Price Action section -->
-      <ng-container *ngFor="let s of sections">
-        <div appReveal>
-          <app-analysis-section [key]="s.key" [label]="s.label" [blocks]="blocks(s.key)"></app-analysis-section>
-          <app-metric-charts *ngIf="s.key === 'price' && analysis?.metrics"
-                             [metrics]="analysis!.metrics"></app-metric-charts>
+      <!-- 7 factor cards (scores read directly from the analysis) -->
+      <div *ngIf="analysis" appReveal id="section-factors" class="qp-section">
+        <h2 class="qp-section-heading">The seven factors</h2>
+        <div class="qp-factor-grid">
+          <app-factor-card *ngFor="let f of factors"
+                           [factor]="f" [ticker]="stock.ticker"
+                           [blocks]="blocks(f.key)"></app-factor-card>
         </div>
-      </ng-container>
+      </div>
+
+      <!-- Charts dashboard: factor bars + sentiment mix + score history + price/VIX -->
+      <div *ngIf="analysis" appReveal id="section-charts" class="qp-section">
+        <h2 class="qp-section-heading">Charts</h2>
+        <app-analysis-charts [analysis]="analysis" [ticker]="stock.ticker"
+                             [history]="history"></app-analysis-charts>
+        <app-metric-charts *ngIf="analysis.metrics"
+                           [metrics]="analysis.metrics" placement="stock"></app-metric-charts>
+      </div>
+
+      <!-- Condensed takeaways per factor (keeps on-page SEO text) -->
+      <div *ngIf="analysis" class="qp-section">
+        <h2 class="qp-section-heading">Key takeaways</h2>
+        <ng-container *ngFor="let f of factors">
+          <div *ngIf="takeaways(f.key).length" appReveal [id]="'section-' + f.key" class="qp-takeaway-block">
+            <div class="qp-takeaway-head">
+              <h3 class="qp-takeaway-title">{{ f.label }}</h3>
+              <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-link">Full analysis →</a>
+            </div>
+            <ul class="qp-takeaway-list">
+              <li *ngFor="let t of takeaways(f.key)"><b>{{ t.heading }}.</b> {{ t.takeaway }}</li>
+            </ul>
+          </div>
+        </ng-container>
+      </div>
+
+      <div *ngIf="!analysis" class="qp-loading" style="padding:60px 0">
+        No analysis has been published for {{ stock.ticker }} yet.
+      </div>
 
     </article>
   </div>

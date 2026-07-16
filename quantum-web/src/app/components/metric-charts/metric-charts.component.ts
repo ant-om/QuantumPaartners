@@ -4,9 +4,15 @@ import { Metrics } from '../../services/supabase.service';
 interface Line { points: string; color: string; label: string; dash?: boolean; }
 interface Stat { label: string; value: string; tone?: 'pos' | 'neg' | 'neu'; }
 interface RefLine { y: number; color: string; label: string; }
+interface RegimeTile { label: string; value: string; sub?: string; tone: 'pos' | 'neg' | 'neu'; }
+interface DivergingBar { label: string; value: number; baseline: number; x: number; w: number; baseX: number; tone: 'pos' | 'neg'; text: string; }
 
 /** Dependency-free SVG charts driven by the live Railway quant API shape
- *  (GET /analyze/<ticker>) stored in the `metrics` JSONB column. */
+ *  (GET /analyze/<ticker>) stored in the `metrics` JSONB column.
+ *  placement controls which graphics render:
+ *   - 'stock'     → price (30d) + VIX (market context)
+ *   - 'price'     → risk stat grid + Monte Carlo range + technical regime strip
+ *   - 'financial' → beta / Fama-French alpha diverging bars */
 @Component({
   selector: 'app-metric-charts',
   standalone: false,
@@ -15,12 +21,14 @@ interface RefLine { y: number; color: string; label: string; }
 })
 export class MetricChartsComponent implements OnChanges {
   @Input() metrics: Metrics | null = null;
+  @Input() placement: 'stock' | 'price' | 'financial' = 'stock';
 
   readonly W = 680;
   readonly H = 220;
   readonly pad = { t: 12, r: 14, b: 22, l: 50 };
 
   stats: Stat[] = [];
+  regime: RegimeTile[] = [];
 
   // Price chart
   hasPrice = false;
@@ -40,11 +48,26 @@ export class MetricChartsComponent implements OnChanges {
   vixLine: Line | null = null;
   vixYTicks: { y: number; label: string }[] = [];
 
+  // Factor model (financial placement)
+  factorBars: DivergingBar[] = [];
+  factorModelName = '';
+
   ngOnChanges(): void {
-    this.buildStats();
-    this.buildPrice();
-    this.buildMonteCarlo();
-    this.buildVix();
+    this.stats = [];
+    this.regime = [];
+    this.factorBars = [];
+    this.hasPrice = this.hasMc = this.hasVix = false;
+
+    if (this.placement === 'stock') {
+      this.buildPrice();
+      this.buildVix();
+    } else if (this.placement === 'price') {
+      this.buildStats();
+      this.buildMonteCarlo();
+      this.buildRegime();
+    } else if (this.placement === 'financial') {
+      this.buildFactorModel();
+    }
   }
 
   private f(n: number | undefined | null, d = 2): string {
@@ -54,6 +77,7 @@ export class MetricChartsComponent implements OnChanges {
     return (n === undefined || n === null) ? '—' : `${(n as number).toFixed(d)}%`;
   }
 
+  /** Risk/return stat grid — Price factor page. */
   private buildStats(): void {
     const m = this.metrics;
     this.stats = [];
@@ -65,30 +89,43 @@ export class MetricChartsComponent implements OnChanges {
       label: 'Sharpe (ann.)', value: this.f(m.returns.sharpe_daily_annualized),
       tone: (m.returns.sharpe_daily_annualized ?? 0) >= 1 ? 'pos' : 'neu',
     });
-    if (m.technicals?.RSI) this.stats.push({
-      label: 'RSI (14)', value: `${this.f(m.technicals.RSI.RSI_14_last, 1)} · ${m.technicals.RSI.RSI_14_state}`,
-      tone: m.technicals.RSI.RSI_14_last >= 70 ? 'neg' : m.technicals.RSI.RSI_14_last <= 30 ? 'pos' : 'neu',
-    });
     if (m.VaR) {
       this.stats.push({ label: 'VaR 95% (daily)', value: this.pct(m.VaR.VaR_5pct_daily * 100), tone: 'neg' });
       this.stats.push({ label: 'VaR 99% (daily)', value: this.pct(m.VaR.VaR_1pct_daily * 100), tone: 'neg' });
     }
-    if (m.drawdown) this.stats.push({ label: 'Max drawdown', value: this.pct(m.drawdown.max_drawdown * 100), tone: 'neg' });
-    if (m.factor_model) {
-      this.stats.push({ label: 'Beta (CAPM)', value: this.f(m.factor_model.capm_beta_univariate_60m) });
-      this.stats.push({ label: 'FF α (ann.)', value: this.pct(m.factor_model.fama_french_alpha_annual * 100),
-        tone: (m.factor_model.fama_french_alpha_annual ?? 0) >= 0 ? 'pos' : 'neg' });
+    if (m.drawdown) {
+      this.stats.push({ label: 'Max drawdown', value: this.pct(m.drawdown.max_drawdown * 100), tone: 'neg' });
+      this.stats.push({ label: 'Calmar ratio', value: this.f(m.drawdown.calmar_ratio) });
     }
-    if (m.technicals?.MACD) this.stats.push({
-      label: 'MACD', value: m.technicals.MACD.crossover,
-      tone: m.technicals.MACD.crossover === 'bullish' ? 'pos' : m.technicals.MACD.crossover === 'bearish' ? 'neg' : 'neu',
-    });
-    if (m.technicals?.golden_death_cross) this.stats.push({
-      label: 'MA cross', value: m.technicals.golden_death_cross.current_state,
-      tone: m.technicals.golden_death_cross.current_state === 'golden' ? 'pos' : 'neg',
-    });
-    if (m.garch_model) this.stats.push({ label: 'GARCH persistence', value: this.f(m.garch_model.persistence) });
     if (m.vix_levels) this.stats.push({ label: 'VIX', value: this.f(m.vix_levels.vix_level_last, 1) });
+  }
+
+  /** Technical regime strip — RSI state, MACD crossover, MA cross, GARCH persistence. */
+  private buildRegime(): void {
+    const t = this.metrics?.technicals;
+    const g = this.metrics?.garch_model;
+    this.regime = [];
+    if (t?.RSI) {
+      const v = t.RSI.RSI_14_last;
+      this.regime.push({
+        label: 'RSI (14)', value: this.f(v, 1), sub: t.RSI.RSI_14_state,
+        tone: v >= 70 ? 'neg' : v <= 30 ? 'pos' : 'neu',
+      });
+    }
+    if (t?.MACD) this.regime.push({
+      label: 'MACD', value: t.MACD.crossover, sub: `hist ${this.f(t.MACD.histogram_last)}`,
+      tone: t.MACD.crossover === 'bullish' ? 'pos' : t.MACD.crossover === 'bearish' ? 'neg' : 'neu',
+    });
+    if (t?.golden_death_cross) this.regime.push({
+      label: 'MA cross', value: t.golden_death_cross.current_state,
+      sub: `${t.golden_death_cross.days_since_last_cross}d since ${t.golden_death_cross.last_cross_type}`,
+      tone: t.golden_death_cross.current_state === 'golden' ? 'pos' : 'neg',
+    });
+    if (g) this.regime.push({
+      label: 'GARCH persistence', value: this.f(g.persistence),
+      sub: g.persistence >= 0.97 ? 'vol shocks decay slowly' : 'vol shocks decay quickly',
+      tone: 'neu',
+    });
   }
 
   private buildPrice(): void {
@@ -111,13 +148,13 @@ export class MetricChartsComponent implements OnChanges {
     const xAt = (i: number) => this.pad.l + (i / (n - 1)) * (this.W - this.pad.l - this.pad.r);
     const yAt = (v: number) => this.pad.t + (1 - (v - lo) / (hi - lo)) * (this.H - this.pad.t - this.pad.b);
 
-    this.priceLine = { points: hist.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.close).toFixed(1)}`).join(' '), color: '#6366f1', label: 'Close (30d)' };
+    this.priceLine = { points: hist.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.close).toFixed(1)}`).join(' '), color: '#0F5499', label: 'Close (30d)' };
 
     this.bollinger = bb ? { top: yAt(bb.upper), bottom: yAt(bb.lower) } : null;
     this.priceRefs = [];
     if (t) {
-      this.priceRefs.push({ y: yAt(t.SMA_50_last), color: '#10b981', label: 'SMA 50' });
-      this.priceRefs.push({ y: yAt(t.SMA_200_last), color: '#94a3b8', label: 'SMA 200' });
+      this.priceRefs.push({ y: yAt(t.SMA_50_last), color: '#0D7680', label: 'SMA 50' });
+      this.priceRefs.push({ y: yAt(t.SMA_200_last), color: '#8C847C', label: 'SMA 200' });
     }
     this.priceYTicks = this.ticks(lo, hi, yAt, v => `$${v.toFixed(0)}`);
     this.hasPrice = true;
@@ -155,9 +192,50 @@ export class MetricChartsComponent implements OnChanges {
     const n = series.length, h = 150;
     const xAt = (i: number) => this.pad.l + (i / (n - 1)) * (this.W - this.pad.l - this.pad.r);
     const yAt = (v: number) => this.pad.t + (1 - (v - lo) / (hi - lo)) * (h - this.pad.t - this.pad.b);
-    this.vixLine = { points: series.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.vix).toFixed(1)}`).join(' '), color: '#a855f7', label: 'VIX (30d)' };
+    this.vixLine = { points: series.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.vix).toFixed(1)}`).join(' '), color: '#0D7680', label: 'VIX (30d)' };
     this.vixYTicks = this.ticks(lo, hi, yAt, v => v.toFixed(0));
     this.hasVix = true;
+  }
+
+  /** Beta-vs-market + Fama-French alpha diverging bars — Financial factor page. */
+  private buildFactorModel(): void {
+    const fm = this.metrics?.factor_model;
+    this.factorBars = [];
+    if (!fm) return;
+    this.factorModelName = (fm.model as string) || 'Factor model';
+
+    const left = 170, right = this.barW - 40;
+    const mid = (left + right) / 2;
+
+    const beta = fm.capm_beta_univariate_60m;
+    if (beta !== undefined && beta !== null && !isNaN(beta)) {
+      // baseline = market beta 1.0; span symmetric around it
+      const span = Math.max(Math.abs(beta - 1), 0.5) * 1.2;
+      const xAt = (v: number) => mid + ((v - 1) / span) * ((right - left) / 2);
+      const x0 = xAt(1), x1 = xAt(beta);
+      this.factorBars.push({
+        label: 'CAPM β (60m) vs market', value: beta, baseline: 1,
+        x: Math.min(x0, x1), w: Math.max(Math.abs(x1 - x0), 2), baseX: x0,
+        tone: beta > 1 ? 'neg' : 'pos', text: this.f(beta),
+      });
+    }
+
+    const alpha = fm.fama_french_alpha_annual;
+    if (alpha !== undefined && alpha !== null && !isNaN(alpha as number)) {
+      const a = (alpha as number) * 100;
+      const span = Math.max(Math.abs(a), 2) * 1.2;
+      const xAt = (v: number) => mid + (v / span) * ((right - left) / 2);
+      const x0 = xAt(0), x1 = xAt(a);
+      this.factorBars.push({
+        label: 'Fama-French α (ann.)', value: a, baseline: 0,
+        x: Math.min(x0, x1), w: Math.max(Math.abs(x1 - x0), 2), baseX: x0,
+        tone: a >= 0 ? 'pos' : 'neg', text: this.pct(a),
+      });
+    }
+    const rsq = fm.r_squared;
+    if (this.factorBars.length && rsq !== undefined && rsq !== null) {
+      this.factorModelName += ` · R² ${this.f(rsq as number)}`;
+    }
   }
 
   private ticks(lo: number, hi: number, yAt: (v: number) => number, fmt: (v: number) => string) {

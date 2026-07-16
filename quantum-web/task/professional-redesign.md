@@ -31,33 +31,33 @@ User decisions: light FT theme · factor chain = round-4 Q&A from `raw_output` (
 ## Phase 2 — CAPABILITY B: Stock Page Restructure
 
 ### Epic B1.1 — Factor registry + routes
-- [ ] `src/app/models/factors.ts` (key/module/label/slug ×7; fs→financial, competition→competitor)
-- [ ] Route `stock/:ticker/:factor` with slug validation
+- [x] `src/app/models/factors.ts` (key/module/label/slug ×7; fs→financial, competition→competitor)
+- [x] Route `stock/:ticker/:factor` with slug validation
 
 ### Epic B1.2 — Lazy raw_output fetch + parser
-- [ ] Capture one live row's `raw_output` shape (anon query) first
-- [ ] `getFactorChain(stockId, moduleKey)` — JSON-path select, whitelist only
-- [ ] `parseFactorChain()` with raw-text fallback
+- [x] Capture one live row's `raw_output` shape (anon query) first
+- [x] `getFactorChain(stockId, moduleKey)` — JSON-path select, whitelist only
+- [x] `parseFactorChain()` with raw-text fallback
 
 ### Epic B1.3 — Factor detail page
-- [ ] `pages/factor-detail/`: breadcrumb, per-block score bars header, SectionBlocks, round-4 Q&A chain (Q1–Q5 + conclusion), prev/next factor
+- [x] `pages/factor-detail/`: breadcrumb, per-block score bars header, SectionBlocks, round-4 Q&A chain (Q1–Q5 + conclusion), prev/next factor
 
 ### Epic B1.4 — Stock page layout (Danelfin-style)
-- [ ] Score anchor (gauge + headline + narrative), 7 factor cards (DIRECT scores from blocks — conclusion block else block bars, no averaging), condensed takeaways below
-- [ ] Update dynamic-island-toc anchors
+- [x] Score anchor (gauge + headline + narrative), 7 factor cards (DIRECT scores from blocks — conclusion block else block bars, no averaging), condensed takeaways below
+- [x] Update dynamic-island-toc anchors
 
 ### Epic B2.1 — Restyle existing charts to FT palette
-- [ ] price/VIX/Monte-Carlo/gauge token colors, serif titles, fix `#6366f1` inconsistency
+- [x] price/VIX/Monte-Carlo/gauge token colors, serif titles, fix `#6366f1` inconsistency
 
 ### Epic B2.2 — Split charts by placement
-- [ ] Stock page: price + VIX; Price factor page: Monte Carlo + technical regime strip (RSI/MACD/cross/GARCH) + VaR/drawdown stat grid; Financial factor page: beta/FF-alpha
+- [x] Stock page: price + VIX; Price factor page: Monte Carlo + technical regime strip (RSI/MACD/cross/GARCH) + VaR/drawdown stat grid; Financial factor page: beta/FF-alpha
 
 ### Epic B2.3 — analysis-charts component
-- [ ] Factor-score bars + sentiment mix (from SectionBlocks), per-block score bars component
+- [x] Factor-score bars + sentiment mix (from SectionBlocks), per-block score bars component
 
 ### Epic B2.4 — Score evolution timeline
-- [ ] SQL view `analysis_score_history` over history (run_at + scores only, anon read) → `doc/sql/`
-- [ ] `getScoreHistory()` + line chart (hidden until ≥2 runs)
+- [x] SQL view `analysis_score_history` over history (run_at + scores only, anon read) → `doc/sql/`
+- [x] `getScoreHistory()` + line chart (hidden until ≥2 runs)
 
 ## Phase 3 — CAPABILITY C: New Pages
 

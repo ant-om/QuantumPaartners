@@ -1,6 +1,6 @@
 <div class="qp-metrics" *ngIf="metrics">
 
-  <!-- Quant stat grid -->
+  <!-- Risk/return stat grid (Price factor page) -->
   <div class="qp-stat-grid" *ngIf="stats.length">
     <div *ngFor="let s of stats" class="qp-stat">
       <div class="qp-stat-label">{{ s.label }}</div>
@@ -8,7 +8,17 @@
     </div>
   </div>
 
-  <!-- Price (30d) + Bollinger band + SMA reference lines -->
+  <!-- Technical regime strip (Price factor page) -->
+  <div class="qp-regime" *ngIf="regime.length">
+    <div *ngFor="let r of regime" class="qp-regime-tile"
+         [class.pos]="r.tone === 'pos'" [class.neg]="r.tone === 'neg'">
+      <div class="qp-stat-label">{{ r.label }}</div>
+      <div class="qp-regime-value qp-mono">{{ r.value }}</div>
+      <div *ngIf="r.sub" class="qp-regime-sub">{{ r.sub }}</div>
+    </div>
+  </div>
+
+  <!-- Price (30d) + Bollinger band + SMA reference lines (stock page) -->
   <div class="qp-chart" *ngIf="hasPrice">
     <div class="qp-chart-head">
       <span class="qp-chart-title">Price — last 30 days</span>
@@ -29,7 +39,7 @@
     </svg>
   </div>
 
-  <!-- Monte Carlo forecast range -->
+  <!-- Monte Carlo forecast range (Price factor page) -->
   <div class="qp-chart" *ngIf="hasMc">
     <div class="qp-chart-head">
       <span class="qp-chart-title">Monte Carlo forecast — {{ mc.horizon }}-day, 95% range</span>
@@ -49,7 +59,7 @@
     </svg>
   </div>
 
-  <!-- VIX (30d) -->
+  <!-- VIX (30d) — market-fear context (stock page) -->
   <div class="qp-chart" *ngIf="hasVix">
     <div class="qp-chart-head">
       <span class="qp-chart-title">VIX — last 30 days</span>
@@ -59,6 +69,24 @@
       <line *ngFor="let t of vixYTicks" [attr.x1]="pad.l" [attr.x2]="W - pad.r" [attr.y1]="t.y" [attr.y2]="t.y" stroke="rgba(51,48,46,0.08)" />
       <text *ngFor="let t of vixYTicks" [attr.x]="pad.l - 6" [attr.y]="t.y + 3" text-anchor="end" font-size="10" fill="#8C847C" font-family="'JetBrains Mono', monospace">{{ t.label }}</text>
       <polyline *ngIf="vixLine" [attr.points]="vixLine.points" fill="none" stroke="#0D7680" stroke-width="1.8" />
+    </svg>
+  </div>
+
+  <!-- Beta / Fama-French alpha diverging bars (Financial factor page) -->
+  <div class="qp-chart" *ngIf="factorBars.length">
+    <div class="qp-chart-head">
+      <span class="qp-chart-title">Market exposure — {{ factorModelName }}</span>
+    </div>
+    <svg [attr.viewBox]="'0 0 ' + barW + ' ' + (factorBars.length * 54 + 16)" class="qp-svg">
+      <g *ngFor="let b of factorBars; let i = index" [attr.transform]="'translate(0 ' + (i * 54) + ')'">
+        <text x="0" y="30" font-size="11" fill="#66605B" font-family="'Inter Tight', sans-serif">{{ b.label }}</text>
+        <rect [attr.x]="b.x" y="18" [attr.width]="b.w" height="16" rx="2"
+              [attr.fill]="b.tone === 'pos' ? '#147B58' : '#A81E1E'" fill-opacity="0.75" />
+        <line [attr.x1]="b.baseX" [attr.x2]="b.baseX" y1="10" y2="42" stroke="#33302E" stroke-width="1.5" />
+        <text [attr.x]="b.baseX" y="54" text-anchor="middle" font-size="9" fill="#8C847C" font-family="'JetBrains Mono', monospace">{{ b.baseline === 1 ? 'market (1.0)' : '0' }}</text>
+        <text [attr.x]="b.x + b.w + 8" y="30" font-size="11" font-weight="700"
+              [attr.fill]="b.tone === 'pos' ? '#147B58' : '#A81E1E'" font-family="'JetBrains Mono', monospace">{{ b.text }}</text>
+      </g>
     </svg>
   </div>
 

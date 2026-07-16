@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint } from '../../services/supabase.service';
+import { FACTORS, FactorDef } from '../../models/factors';
 
 @Component({
   selector: 'app-stock-detail',
@@ -11,22 +12,21 @@ import { SupabaseService, Stock, StockAnalysis, SectionBlock } from '../../servi
 export class StockDetailComponent implements OnInit {
   stock: Stock | null = null;
   analysis: StockAnalysis | null = null;
+  history: ScoreHistoryPoint[] = [];
   loading = true;
   notFound = false;
 
-  sections = [
-    { key: 'political',  label: 'Political & Regulatory' },
-    { key: 'price',      label: 'Price Action' },
-    { key: 'macro',      label: 'Macroeconomic Environment' },
-    { key: 'management', label: 'Management & Governance' },
-    { key: 'sentiment',  label: 'Market Sentiment' },
-    { key: 'competitor', label: 'Competitive Landscape' },
-    { key: 'financial',  label: 'Financial Health' },
-  ];
+  readonly factors: FactorDef[] = FACTORS;
 
-  // TOC entries (overview + the price-chart anchor render as sections too)
+  // TOC entries — anchors match the section ids in the template
   get tocSections() {
-    return [{ key: 'summary', label: 'Overview' }, ...this.sections];
+    const toc = [{ key: 'summary', label: 'Overview' }];
+    if (this.analysis) {
+      toc.push({ key: 'factors', label: 'Factor scores' });
+      if (this.analysis.metrics) toc.push({ key: 'charts', label: 'Charts' });
+      toc.push(...this.factors.map(f => ({ key: f.key, label: f.short })));
+    }
+    return toc;
   }
 
   constructor(
@@ -45,10 +45,18 @@ export class StockDetailComponent implements OnInit {
     }
     this.analysis = await this.supabase.getAnalysis(this.stock.id);
     this.loading = false;
+    // score history is optional (view may not exist yet) — never blocks render
+    this.history = await this.supabase.getScoreHistory(this.stock.id);
   }
 
   blocks(key: string): SectionBlock[] | null {
     return (this.analysis as any)?.[key] ?? null;
+  }
+
+  takeaways(key: string): { heading: string; takeaway: string }[] {
+    return (this.blocks(key) ?? [])
+      .filter(b => b.takeaway)
+      .map(b => ({ heading: b.heading, takeaway: b.takeaway }));
   }
 
   goHome() {

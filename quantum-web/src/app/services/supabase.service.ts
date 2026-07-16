@@ -90,6 +90,60 @@ export interface StockAnalysis {
   metrics: Metrics | null;
 }
 
+// ── Round-4 Q&A chains (raw_output JSONB, fetched lazily per factor) ──
+export interface FactorChainStep { label: string; text: string; }
+export interface FactorChain { qa: FactorChainStep[]; conclusion: string | null; raw: string | null; }
+
+/** raw_output module keys we are allowed to JSON-path select. Never build the
+ *  select string from unvalidated route input. */
+const RAW_OUTPUT_MODULES = ['political', 'price', 'macro', 'management', 'sentiment', 'competition', 'fs'] as const;
+export type RawOutputModule = typeof RAW_OUTPUT_MODULES[number];
+
+/** Defensive parser for one module's Q&A chains. Live shape (captured 2026-07-16):
+ *  { chain_1: "...", ..., chain_6: "..." } — plain text, usually prefixed with a
+ *  "[Module | TICKER | date | Layer 2 | Q&A Chain N]" header line; the last chain
+ *  is the module's synthesis/conclusion. Anything unexpected falls back to raw text. */
+export function parseFactorChain(moduleData: unknown): FactorChain | null {
+  if (moduleData === null || moduleData === undefined) return null;
+
+  if (typeof moduleData === 'string') {
+    return moduleData.trim() ? { qa: [], conclusion: null, raw: moduleData.trim() } : null;
+  }
+  if (typeof moduleData !== 'object') return null;
+
+  const entries = Object.entries(moduleData as Record<string, unknown>)
+    .filter(([, v]) => typeof v === 'string' && (v as string).trim().length > 0)
+    .map(([k, v]) => {
+      const m = /^chain[_ ]?(\d+)$/i.exec(k);
+      return { order: m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER, key: k, text: (v as string).trim() };
+    })
+    .sort((a, b) => a.order - b.order || a.key.localeCompare(b.key));
+
+  if (!entries.length) return null;
+
+  const steps: FactorChainStep[] = entries.map((e, i) => {
+    let text = e.text;
+    let label = `Question ${i + 1}`;
+    // Strip the bracketed provenance header if present, keep it as the label
+    const header = /^\[([^\]\n]{1,120})\]\s*\n+/.exec(text);
+    if (header) {
+      label = header[1].trim();
+      text = text.slice(header[0].length).trim();
+    }
+    return { label, text };
+  });
+
+  if (steps.length === 1) return { qa: [], conclusion: steps[0].text, raw: null };
+  const conclusion = steps[steps.length - 1];
+  return { qa: steps.slice(0, -1), conclusion: conclusion.text, raw: null };
+}
+
+export interface ScoreHistoryPoint {
+  run_at: string;
+  summary_score: number | null;
+  [factorKey: string]: string | number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
   private client: SupabaseClient;
@@ -125,5 +179,34 @@ export class SupabaseService {
       .single();
     if (error) return null;
     return data as StockAnalysis;
+  }
+
+  /** Lazily fetch ONE module's round-4 Q&A chains from raw_output.
+   *  moduleKey is validated against a whitelist — never interpolated from raw input. */
+  async getFactorChain(stockId: string, moduleKey: string): Promise<FactorChain | null> {
+    if (!(RAW_OUTPUT_MODULES as readonly string[]).includes(moduleKey)) return null;
+    const { data, error } = await this.client
+      .from('stock_analyses')
+      .select(`chain:raw_output->${moduleKey}`)
+      .eq('stock_id', stockId)
+      .single();
+    if (error) return null;
+    return parseFactorChain((data as { chain?: unknown } | null)?.chain);
+  }
+
+  /** Score evolution over runs. Backed by the analysis_score_history SQL view
+   *  (doc/sql/analysis_score_history.sql) — returns [] until the view exists. */
+  async getScoreHistory(stockId: string): Promise<ScoreHistoryPoint[]> {
+    try {
+      const { data, error } = await this.client
+        .from('analysis_score_history')
+        .select('*')
+        .eq('stock_id', stockId)
+        .order('run_at');
+      if (error || !data) return [];
+      return data as ScoreHistoryPoint[];
+    } catch {
+      return [];
+    }
   }
 }

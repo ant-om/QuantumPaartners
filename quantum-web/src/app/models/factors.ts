@@ -1,0 +1,64 @@
+/** Single source of truth for the 7 analysis factors.
+ *  key    = column on stock_analyses (SectionBlock[])
+ *  module = key inside raw_output (the n8n round-4 Q&A chains)
+ *  slug   = URL segment for /stock/:ticker/:factor */
+export interface FactorDef {
+  key: 'political' | 'price' | 'macro' | 'management' | 'sentiment' | 'competitor' | 'financial';
+  module: 'political' | 'price' | 'macro' | 'management' | 'sentiment' | 'competition' | 'fs';
+  label: string;
+  slug: string;
+  short: string;
+}
+
+export const FACTORS: FactorDef[] = [
+  { key: 'political',  module: 'political',   label: 'Political & Regulatory',    slug: 'political',  short: 'Political' },
+  { key: 'price',      module: 'price',       label: 'Price Action',              slug: 'price',      short: 'Price' },
+  { key: 'macro',      module: 'macro',       label: 'Macroeconomic Environment', slug: 'macro',      short: 'Macro' },
+  { key: 'management', module: 'management',  label: 'Management & Governance',   slug: 'management', short: 'Management' },
+  { key: 'sentiment',  module: 'sentiment',   label: 'Market Sentiment',          slug: 'sentiment',  short: 'Sentiment' },
+  { key: 'competitor', module: 'competition', label: 'Competitive Landscape',     slug: 'competitor', short: 'Competition' },
+  { key: 'financial',  module: 'fs',          label: 'Financial Health',          slug: 'financial',  short: 'Financials' },
+];
+
+export function factorBySlug(slug: string | null | undefined): FactorDef | null {
+  if (!slug) return null;
+  return FACTORS.find(f => f.slug === slug.toLowerCase()) ?? null;
+}
+
+export function prevNextFactor(slug: string): { prev: FactorDef; next: FactorDef } {
+  const i = Math.max(0, FACTORS.findIndex(f => f.slug === slug));
+  const n = FACTORS.length;
+  return { prev: FACTORS[(i - 1 + n) % n], next: FACTORS[(i + 1) % n] };
+}
+
+// ── Direct-value display rule (user decision: scores come straight from the
+// analysis blocks, NO client-side averaging) ────────────────────────────────
+import { SectionBlock, Sentiment } from '../services/supabase.service';
+
+export interface FactorDisplay {
+  /** The factor's single score when the analysis provides one directly. */
+  score: number | null;
+  sentiment: Sentiment | undefined;
+  takeaway: string | null;
+  /** When no single score exists, the individual block scores (shown as-is). */
+  blockScores: { heading: string; score: number }[];
+}
+
+const CONCLUSION_RE = /(conclusion|overall|synthesis|verdict|summary)/i;
+
+export function factorDisplay(blocks: SectionBlock[] | null | undefined): FactorDisplay {
+  const list = Array.isArray(blocks) ? blocks : [];
+  const conclusion = list.find(b => CONCLUSION_RE.test(b.heading || '') && b.score !== undefined && b.score !== null);
+  const source = conclusion ?? (list.length === 1 ? list[0] : undefined);
+
+  const takeawaySource = conclusion ?? list.find(b => b.takeaway) ?? list[0];
+  return {
+    score: source?.score ?? null,
+    sentiment: source?.sentiment ?? takeawaySource?.sentiment,
+    takeaway: takeawaySource?.takeaway ?? null,
+    blockScores: source
+      ? []
+      : list.filter(b => b.score !== undefined && b.score !== null)
+            .map(b => ({ heading: b.heading, score: b.score as number })),
+  };
+}

@@ -34,6 +34,34 @@
 .qp-stat-value.pos { color: var(--bull); }
 .qp-stat-value.neg { color: var(--bear); }
 
+/* Technical regime strip */
+.qp-regime {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.qp-regime-tile {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  background: var(--surface);
+}
+.qp-regime-tile.pos { border-left-color: var(--bull); }
+.qp-regime-tile.neg { border-left-color: var(--bear); }
+.qp-regime-value {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+.qp-regime-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 /* Charts */
 .qp-chart {
   border: 1px solid var(--border);

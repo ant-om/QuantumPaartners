@@ -1,0 +1,81 @@
+<div *ngIf="loading" class="qp-loading">Loading…</div>
+
+<div *ngIf="notFound" class="qp-loading">
+  Stock not found. <a routerLink="/" class="qp-back">← Back</a>
+</div>
+
+<div *ngIf="!loading && !notFound && stock && factor" class="qp-detail">
+
+  <!-- Breadcrumb -->
+  <nav class="qp-crumbs qp-mono">
+    <a routerLink="/">All stocks</a>
+    <span class="qp-crumbs-sep">/</span>
+    <a [routerLink]="['/stock', stock.ticker]">{{ stock.ticker }}</a>
+    <span class="qp-crumbs-sep">/</span>
+    <span class="qp-crumbs-here">{{ factor.short }}</span>
+  </nav>
+
+  <!-- Factor header -->
+  <div class="qp-stock-titleblock">
+    <div class="qp-stock-ticker">{{ stock.ticker }} · {{ stock.name }}</div>
+    <div class="qp-stock-name">{{ factor.label }}</div>
+    <div class="qp-factor-meta">
+      <app-sentiment-chip [sentiment]="display?.sentiment"></app-sentiment-chip>
+      <app-score-gauge *ngIf="display && display.score !== null"
+                       [score]="display.score" label="Score" [size]="56"></app-score-gauge>
+      <span *ngIf="analysis" class="qp-badge">Updated {{ analysis.run_at | date:'mediumDate' }}</span>
+    </div>
+    <div *ngIf="blocks?.length" class="qp-factor-blockbars">
+      <app-block-score-bars [blocks]="blocks"></app-block-score-bars>
+    </div>
+  </div>
+
+  <article class="qp-article">
+
+    <!-- Structured analysis blocks -->
+    <app-analysis-section *ngIf="blocks?.length"
+                          [key]="factor.key" label="Analysis" [blocks]="blocks"></app-analysis-section>
+
+    <!-- Factor-specific quant graphics -->
+    <div *ngIf="metricsPlacement" class="qp-section">
+      <h2 class="qp-section-heading">{{ metricsPlacement === 'price' ? 'Quant dashboard' : 'Market exposure' }}</h2>
+      <app-metric-charts [metrics]="analysis!.metrics" [placement]="metricsPlacement"></app-metric-charts>
+    </div>
+
+    <!-- Round-4 reasoning chain -->
+    <div class="qp-section">
+      <h2 class="qp-section-heading">Full reasoning chain</h2>
+      <p class="qp-chain-intro">
+        The unedited Q&amp;A chain our AI analysts ran for this factor — every
+        conclusion above traces back to these steps.
+      </p>
+
+      <div *ngIf="chainLoading" class="qp-loading" style="padding:40px 0">Loading reasoning chain…</div>
+
+      <ng-container *ngIf="!chainLoading">
+        <p *ngIf="!chain" class="qp-nodata-inline">No reasoning chain is stored for this factor yet.</p>
+
+        <pre *ngIf="chain?.raw" class="qp-chain-raw">{{ chain!.raw }}</pre>
+
+        <div *ngFor="let step of chain?.qa; let i = index" class="qp-chain-step">
+          <h3 class="qp-chain-q">Step {{ i + 1 }}</h3>
+          <div class="qp-chain-provenance qp-mono">{{ step.label }}</div>
+          <pre class="qp-chain-a">{{ step.text }}</pre>
+        </div>
+
+        <div *ngIf="chain?.conclusion" class="qp-chain-conclusion">
+          <h3 class="qp-chain-q">Conclusion</h3>
+          <pre class="qp-chain-a">{{ chain!.conclusion }}</pre>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Prev / next factor -->
+    <nav class="qp-factor-nav">
+      <a *ngIf="prev" [routerLink]="['/stock', stock.ticker, prev.slug]" class="qp-factor-nav-link">← {{ prev.short }}</a>
+      <a [routerLink]="['/stock', stock.ticker]" class="qp-factor-nav-link">{{ stock.ticker }} overview</a>
+      <a *ngIf="next" [routerLink]="['/stock', stock.ticker, next.slug]" class="qp-factor-nav-link">{{ next.short }} →</a>
+    </nav>
+
+  </article>
+</div>

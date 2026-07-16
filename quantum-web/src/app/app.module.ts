@@ -7,6 +7,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { HomeComponent } from './pages/home/home.component';
 import { StockDetailComponent } from './pages/stock-detail/stock-detail.component';
+import { FactorDetailComponent } from './pages/factor-detail/factor-detail.component';
 import { DynamicIslandTocComponent } from './components/dynamic-island-toc/dynamic-island-toc.component';
 import { SentimentChipComponent } from './components/sentiment-chip/sentiment-chip.component';
 import { ScoreGaugeComponent } from './components/score-gauge/score-gauge.component';
@@ -14,6 +15,9 @@ import { AnalysisSectionComponent } from './components/analysis-section/analysis
 import { MetricChartsComponent } from './components/metric-charts/metric-charts.component';
 import { NavComponent } from './components/nav/nav.component';
 import { StockCardComponent } from './components/stock-card/stock-card.component';
+import { FactorCardComponent } from './components/factor-card/factor-card.component';
+import { AnalysisChartsComponent } from './components/analysis-charts/analysis-charts.component';
+import { BlockScoreBarsComponent } from './components/block-score-bars/block-score-bars.component';
 import { TickerTapeComponent } from './components/ticker-tape/ticker-tape.component';
 import { RevealDirective } from './directives/reveal.directive';
 
@@ -22,6 +26,7 @@ import { RevealDirective } from './directives/reveal.directive';
     AppComponent,
     HomeComponent,
     StockDetailComponent,
+    FactorDetailComponent,
     DynamicIslandTocComponent,
     SentimentChipComponent,
     ScoreGaugeComponent,
@@ -29,6 +34,9 @@ import { RevealDirective } from './directives/reveal.directive';
     MetricChartsComponent,
     NavComponent,
     StockCardComponent,
+    FactorCardComponent,
+    AnalysisChartsComponent,
+    BlockScoreBarsComponent,
     TickerTapeComponent,
     RevealDirective,
   ],
