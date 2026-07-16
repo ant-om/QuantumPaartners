@@ -30,8 +30,9 @@
       <span>updated <b>daily</b></span>
     </div>
 
-    <!-- Newsletter signup slot — wired up in Phase 3 (C2) -->
-    <div class="qp-hero-newsletter"></div>
+    <div class="qp-hero-newsletter">
+      <app-newsletter-signup source="home-hero"></app-newsletter-signup>
+    </div>
   </div>
 </section>
 
@@ -102,6 +103,7 @@
       <a routerLink="/about">About &amp; methodology</a>
       <a routerLink="/newsletter">Newsletter</a>
     </nav>
+    <app-newsletter-signup source="home-footer" [compact]="true"></app-newsletter-signup>
     <p class="qp-footer-note">
       A <strong>Quantum Partners</strong> product · © 2026.<br>
       AI-generated research for informational purposes only. Not investment advice.

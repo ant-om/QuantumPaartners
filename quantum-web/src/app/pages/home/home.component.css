@@ -1,3 +1,10 @@
+/* Hero newsletter slot */
+.qp-hero-newsletter {
+  margin-top: 34px;
+  display: flex;
+  justify-content: center;
+}
+
 /* Coverage grid */
 .qp-stock-grid {
   display: grid;

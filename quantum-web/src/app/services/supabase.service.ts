@@ -152,6 +152,11 @@ export class SupabaseService {
     this.client = createClient(environment.supabaseUrl, environment.supabaseAnonKey);
   }
 
+  /** Shared anon client for sibling services (e.g. NewsletterService). */
+  get supabase(): SupabaseClient {
+    return this.client;
+  }
+
   async getStocks(): Promise<Stock[]> {
     const { data, error } = await this.client
       .from('stocks')

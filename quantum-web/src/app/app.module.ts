@@ -8,6 +8,9 @@ import { AppComponent } from './app.component';
 import { HomeComponent } from './pages/home/home.component';
 import { StockDetailComponent } from './pages/stock-detail/stock-detail.component';
 import { FactorDetailComponent } from './pages/factor-detail/factor-detail.component';
+import { AboutPageComponent } from './pages/about/about.component';
+import { NewsletterPageComponent } from './pages/newsletter/newsletter.component';
+import { NewsletterSignupComponent } from './components/newsletter-signup/newsletter-signup.component';
 import { DynamicIslandTocComponent } from './components/dynamic-island-toc/dynamic-island-toc.component';
 import { SentimentChipComponent } from './components/sentiment-chip/sentiment-chip.component';
 import { ScoreGaugeComponent } from './components/score-gauge/score-gauge.component';
@@ -27,6 +30,9 @@ import { RevealDirective } from './directives/reveal.directive';
     HomeComponent,
     StockDetailComponent,
     FactorDetailComponent,
+    AboutPageComponent,
+    NewsletterPageComponent,
+    NewsletterSignupComponent,
     DynamicIslandTocComponent,
     SentimentChipComponent,
     ScoreGaugeComponent,

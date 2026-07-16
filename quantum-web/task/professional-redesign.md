@@ -62,16 +62,16 @@ User decisions: light FT theme · factor chain = round-4 Q&A from `raw_output` (
 ## Phase 3 — CAPABILITY C: New Pages
 
 ### Epic C2.1 — newsletter_subscribers table
-- [ ] SQL: table + unique lower(email) + RLS anon INSERT-only → `doc/sql/newsletter_subscribers.sql`, run in Supabase
+- [x] SQL: table + unique lower(email) + RLS anon INSERT-only → `doc/sql/newsletter_subscribers.sql`, run in Supabase
 
 ### Epic C2.2 — newsletter.service.ts
-- [ ] `subscribe()` → ok/duplicate/invalid/error; no `.select()` after insert; 23505→duplicate
+- [x] `subscribe()` → ok/duplicate/invalid/error; no `.select()` after insert; 23505→duplicate
 
 ### Epic C2.3 — Signup component + /newsletter page
-- [ ] "Get free Stock Bar newsletter" form (states + honeypot); embed hero + footer; `/newsletter` page
+- [x] "Get free Stock Bar newsletter" form (states + honeypot); embed hero + footer; `/newsletter` page
 
 ### Epic C1.1 — About page
-- [ ] `/about`: mission (free verified AI analysis), daily updates, honest L1→L5 methodology, disclaimer
+- [x] `/about`: mission (free verified AI analysis), daily updates, honest L1→L5 methodology, disclaimer
 
 ## Phase 4 — CAPABILITY D: SSR & SEO
 
