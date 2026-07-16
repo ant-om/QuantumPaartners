@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { SeoService } from '../../services/seo.service';
 
 @Component({
   selector: 'app-newsletter-page',
@@ -28,4 +29,13 @@ import { Component } from '@angular/core';
     </div>
   `,
 })
-export class NewsletterPageComponent {}
+export class NewsletterPageComponent implements OnInit {
+  constructor(private seo: SeoService) {}
+  ngOnInit(): void {
+    this.seo.set({
+      title: 'Get the free Stock Bar newsletter',
+      description: "The day's AI stock analysis, distilled into one plain-English read. Free, no paywall, unsubscribe anytime.",
+      canonicalPath: '/newsletter',
+    });
+  }
+}

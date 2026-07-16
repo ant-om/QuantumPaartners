@@ -76,22 +76,22 @@ User decisions: light FT theme · factor chain = round-4 Q&A from `raw_output` (
 ## Phase 4 — CAPABILITY D: SSR & SEO
 
 ### Epic D2.1 — Browser-API guards (before ng add)
-- [ ] dynamic-island-toc `isPlatformBrowser` guard; ticker-tape polls browser-only
+- [x] dynamic-island-toc `isPlatformBrowser` guard; ticker-tape polls browser-only
 
 ### Epic D2.2 — @angular/ssr
-- [ ] ng add (NgModule path); prerender ''/about/newsletter, SSR stock routes; hydration + TransferState
+- [x] ng add (NgModule path); prerender ''/about/newsletter, SSR stock routes; hydration + TransferState
 
 ### Epic D2.3 — SEO service + per-route meta
-- [ ] `seo.service.ts`; titles/descriptions/canonical/OG/JSON-LD per route; index.html defaults
+- [x] `seo.service.ts`; titles/descriptions/canonical/OG/JSON-LD per route; index.html defaults
 
 ### Epic D2.4 — robots + sitemap
-- [ ] `public/robots.txt`; `/sitemap.xml` Express handler from getStocks() incl. factor URLs
+- [x] `public/robots.txt`; `/sitemap.xml` Express handler from getStocks() incl. factor URLs
 
 ## Phase 5 — CAPABILITY E: Logos (low priority)
 
 ### Epic E1.1 — S&P 500 logo mapping
-- [ ] `public/data/sp500-logos.json` (ticker-keyed CDN) + `logo.service.ts` fallback chain
+- [x] `public/data/sp500-logos.json` (ticker-keyed CDN) + `logo.service.ts` fallback chain
 
 ## Wrap-up
-- [ ] `doc/professional-redesign.md` write-up
-- [ ] Note future n8n follow-ups: structurer emits per-factor {score,sentiment}; Brevo reads newsletter_subscribers; persist L1–L3 rounds
+- [x] `doc/professional-redesign.md` write-up
+- [x] Note future n8n follow-ups: structurer emits per-factor {score,sentiment}; Brevo reads newsletter_subscribers; persist L1–L3 rounds

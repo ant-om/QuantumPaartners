@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
+import { BrowserModule, provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule } from '@angular/forms';
 
@@ -52,7 +52,9 @@ import { RevealDirective } from './directives/reveal.directive';
     AppRoutingModule,
     FormsModule,
   ],
-  providers: [],
+  providers: [
+    provideClientHydration(withEventReplay())
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

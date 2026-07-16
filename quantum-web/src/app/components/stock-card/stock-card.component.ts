@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { Stock } from '../../services/supabase.service';
+import { LogoService } from '../../services/logo.service';
 
 /** Professional stock card — white, 1px border, claret top bar.
  *  The whole card is a real <a routerLink> so it is crawlable. */
@@ -11,10 +12,10 @@ import { Stock } from '../../services/supabase.service';
       <div class="sc-topbar"></div>
       <div class="sc-head">
         <div class="sc-logo-wrap">
-          <img *ngIf="stock.logo_url && !logoFailed" [src]="stock.logo_url"
+          <img *ngIf="logoUrl && !logoFailed" [src]="logoUrl"
                [alt]="stock.name + ' logo'" class="sc-logo" loading="lazy"
                (error)="logoFailed = true">
-          <span *ngIf="!stock.logo_url || logoFailed" class="sc-monogram">{{ monogram }}</span>
+          <span *ngIf="!logoUrl || logoFailed" class="sc-monogram">{{ monogram }}</span>
         </div>
         <span class="sc-ticker qp-mono">{{ stock.ticker }}</span>
       </div>
@@ -54,6 +55,12 @@ import { Stock } from '../../services/supabase.service';
 export class StockCardComponent {
   @Input({ required: true }) stock!: Stock;
   logoFailed = false;
+
+  constructor(private logos: LogoService) {}
+
+  get logoUrl(): string {
+    return this.logos.resolve(this.stock);
+  }
 
   get monogram(): string {
     return (this.stock?.ticker || '?').slice(0, 2).toUpperCase();

@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { SeoService } from '../../services/seo.service';
 
 @Component({
   selector: 'app-about-page',
@@ -69,4 +70,13 @@ import { Component } from '@angular/core';
     </div>
   `,
 })
-export class AboutPageComponent {}
+export class AboutPageComponent implements OnInit {
+  constructor(private seo: SeoService) {}
+  ngOnInit(): void {
+    this.seo.set({
+      title: 'About — how our AI analysis works',
+      description: 'Stock Bar publishes free, verified AI stock analysis with the full reasoning behind every score. Here is exactly how the five-layer pipeline works.',
+      canonicalPath: '/about',
+    });
+  }
+}

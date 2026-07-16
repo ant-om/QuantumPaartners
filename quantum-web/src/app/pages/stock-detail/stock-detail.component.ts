@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint } from '../../services/supabase.service';
+import { SeoService } from '../../services/seo.service';
+import { LogoService } from '../../services/logo.service';
 import { FACTORS, FactorDef } from '../../models/factors';
 
 @Component({
@@ -15,6 +17,11 @@ export class StockDetailComponent implements OnInit {
   history: ScoreHistoryPoint[] = [];
   loading = true;
   notFound = false;
+  logoFailed = false;
+
+  get logoUrl(): string {
+    return this.stock ? this.logos.resolve(this.stock) : '';
+  }
 
   readonly factors: FactorDef[] = FACTORS;
 
@@ -32,7 +39,9 @@ export class StockDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private supabase: SupabaseService
+    private supabase: SupabaseService,
+    private seo: SeoService,
+    private logos: LogoService
   ) {}
 
   async ngOnInit() {
@@ -41,10 +50,24 @@ export class StockDetailComponent implements OnInit {
     if (!this.stock) {
       this.notFound = true;
       this.loading = false;
+      this.seo.set({ title: 'Stock not found', noindex: true });
       return;
     }
     this.analysis = await this.supabase.getAnalysis(this.stock.id);
     this.loading = false;
+    this.seo.set({
+      title: `${this.stock.ticker} Stock Analysis & AI Score — ${this.stock.name}`,
+      description: this.analysis?.summary?.headline
+        ?? `AI analysis of ${this.stock.name} (${this.stock.ticker}) across seven factors, updated daily.`,
+      canonicalPath: `/stock/${this.stock.ticker}`,
+      ogType: 'article',
+      jsonLd: {
+        '@context': 'https://schema.org', '@type': 'Article',
+        headline: this.analysis?.summary?.headline ?? `${this.stock.ticker} AI stock analysis`,
+        about: { '@type': 'Corporation', name: this.stock.name, tickerSymbol: this.stock.ticker },
+        dateModified: this.analysis?.run_at, author: { '@type': 'Organization', name: 'Stock Bar' },
+      },
+    });
     // score history is optional (view may not exist yet) — never blocks render
     this.history = await this.supabase.getScoreHistory(this.stock.id);
   }

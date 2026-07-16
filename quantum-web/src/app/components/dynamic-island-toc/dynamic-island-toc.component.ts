@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { Component, Inject, Input, OnInit, OnDestroy, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { trigger, state, style, animate, transition } from '@angular/animations';
 
 @Component({
@@ -43,6 +44,11 @@ export class DynamicIslandTocComponent implements OnInit, OnDestroy {
   readonly circumference = 2 * Math.PI * ((24 - 2.5) / 2);
 
   private scrollHandler = () => this.onScroll();
+  private readonly isBrowser: boolean;
+
+  constructor(@Inject(PLATFORM_ID) platformId: object) {
+    this.isBrowser = isPlatformBrowser(platformId);
+  }
 
   get activeLabel(): string {
     return this.sections.find(s => s.key === this.activeKey)?.label ?? 'Contents';
@@ -53,11 +59,13 @@ export class DynamicIslandTocComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    if (!this.isBrowser) return; // scroll tracking is browser-only (SSR guard)
     window.addEventListener('scroll', this.scrollHandler, { passive: true });
     this.onScroll();
   }
 
   ngOnDestroy() {
+    if (!this.isBrowser) return;
     window.removeEventListener('scroll', this.scrollHandler);
   }
 

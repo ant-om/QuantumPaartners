@@ -1,0 +1,8 @@
+{
+  "_comment": "Ticker-keyed logo CDN overrides. LogoService falls back to the financialmodelingprep pattern for any ticker not listed, then to a monogram.",
+  "AAPL": "https://financialmodelingprep.com/image-stock/AAPL.png",
+  "MSFT": "https://financialmodelingprep.com/image-stock/MSFT.png",
+  "PEP": "https://financialmodelingprep.com/image-stock/PEP.png",
+  "PLTR": "https://financialmodelingprep.com/image-stock/PLTR.png",
+  "TSLA": "https://financialmodelingprep.com/image-stock/TSLA.png"
+}

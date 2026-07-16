@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, FactorChain } from '../../services/supabase.service';
+import { SeoService } from '../../services/seo.service';
 import { FactorDef, FactorDisplay, factorBySlug, factorDisplay, prevNextFactor } from '../../models/factors';
 
 /** /stock/:ticker/:factor — one factor's full analysis + the round-4 Q&A
@@ -26,13 +27,19 @@ export class FactorDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private supabase: SupabaseService,
+    private seo: SeoService,
   ) {}
 
-  ngOnInit(): void {
-    // params (not snapshot): prev/next links navigate within this component
+  async ngOnInit(): Promise<void> {
+    let first = true;
+    // subscribe (not just snapshot): prev/next links navigate within this component
     this.route.paramMap.subscribe(pm => {
+      if (first) return; // initial load is awaited below so SSR waits for it
       void this.load(pm.get('ticker') ?? '', pm.get('factor'));
     });
+    const pm = this.route.snapshot.paramMap;
+    await this.load(pm.get('ticker') ?? '', pm.get('factor'));
+    first = false;
   }
 
   private async load(ticker: string, slug: string | null): Promise<void> {
@@ -59,11 +66,28 @@ export class FactorDetailComponent implements OnInit {
     if (!this.stock) {
       this.notFound = true;
       this.loading = false;
+      this.seo.set({ title: 'Stock not found', noindex: true });
       return;
     }
 
     this.display = factorDisplay(this.blocks);
     this.loading = false;
+
+    this.seo.set({
+      title: `${this.stock.ticker} ${factor.short} — AI Analysis Chain`,
+      description: this.display?.takeaway
+        ?? `${factor.label} analysis for ${this.stock.name} (${this.stock.ticker}), with the full AI reasoning chain.`,
+      canonicalPath: `/stock/${this.stock.ticker}/${factor.slug}`,
+      ogType: 'article',
+      jsonLd: {
+        '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Stocks', item: 'https://stockbar.app/' },
+          { '@type': 'ListItem', position: 2, name: this.stock.ticker, item: `https://stockbar.app/stock/${this.stock.ticker}` },
+          { '@type': 'ListItem', position: 3, name: factor.label },
+        ],
+      },
+    });
 
     // Round-4 chain is fetched lazily — it is NOT part of getAnalysis
     this.chain = await this.supabase.getFactorChain(this.stock.id, factor.module);

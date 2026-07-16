@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, PLATFORM_ID, PendingTasks, TransferState, makeStateKey } from '@angular/core';
+import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 
@@ -147,9 +148,21 @@ export interface ScoreHistoryPoint {
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
   private client: SupabaseClient;
+  private readonly isServer: boolean;
+  private readonly isBrowser: boolean;
 
-  constructor() {
-    this.client = createClient(environment.supabaseUrl, environment.supabaseAnonKey);
+  constructor(
+    private transferState: TransferState,
+    private pendingTasks: PendingTasks,
+    @Inject(PLATFORM_ID) platformId: object,
+  ) {
+    this.isServer = isPlatformServer(platformId);
+    this.isBrowser = isPlatformBrowser(platformId);
+    // Anonymous reads only — disable GoTrue session machinery. Its timers and
+    // storage/lock access keep Angular's zone unstable during SSR (renders hang).
+    this.client = createClient(environment.supabaseUrl, environment.supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
   }
 
   /** Shared anon client for sibling services (e.g. NewsletterService). */
@@ -157,59 +170,90 @@ export class SupabaseService {
     return this.client;
   }
 
+  /** SSR → hydration handoff: the server stores each read in TransferState so
+   *  the browser's first render reuses it instead of re-querying Supabase.
+   *  PendingTasks holds SSR stability open during the fetch — supabase-js uses
+   *  Node's native fetch, which zone.js cannot track (renders would race). */
+  private async cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const stateKey = makeStateKey<T>(`sb:${key}`);
+    if (this.isBrowser && this.transferState.hasKey(stateKey)) {
+      const value = this.transferState.get(stateKey, null as T);
+      this.transferState.remove(stateKey); // later navigations fetch fresh
+      return value;
+    }
+    const done = this.pendingTasks.add();
+    try {
+      const value = await fetcher();
+      if (this.isServer) this.transferState.set(stateKey, value);
+      return value;
+    } finally {
+      done();
+    }
+  }
+
   async getStocks(): Promise<Stock[]> {
-    const { data, error } = await this.client
-      .from('stocks')
-      .select('id, ticker, name, exchange, sector, industry, country, description, website, logo_url')
-      .order('ticker');
-    if (error) throw error;
-    return data as Stock[];
+    return this.cached('stocks', async () => {
+      const { data, error } = await this.client
+        .from('stocks')
+        .select('id, ticker, name, exchange, sector, industry, country, description, website, logo_url')
+        .order('ticker');
+      if (error) throw error;
+      return data as Stock[];
+    });
   }
 
   async getStockByTicker(ticker: string): Promise<Stock | null> {
-    const { data, error } = await this.client
-      .from('stocks')
-      .select('*')
-      .eq('ticker', ticker.toUpperCase())
-      .single();
-    if (error) return null;
-    return data as Stock;
+    return this.cached(`stock:${ticker.toUpperCase()}`, async () => {
+      const { data, error } = await this.client
+        .from('stocks')
+        .select('*')
+        .eq('ticker', ticker.toUpperCase())
+        .single();
+      if (error) return null;
+      return data as Stock;
+    });
   }
 
   async getAnalysis(stockId: string): Promise<StockAnalysis | null> {
-    const { data, error } = await this.client
-      .from('stock_analyses')
-      .select('id, stock_id, source, run_at, summary, political, price, macro, management, sentiment, competitor, financial, metrics')
-      .eq('stock_id', stockId)
-      .single();
-    if (error) return null;
-    return data as StockAnalysis;
+    return this.cached(`analysis:${stockId}`, async () => {
+      const { data, error } = await this.client
+        .from('stock_analyses')
+        .select('id, stock_id, source, run_at, summary, political, price, macro, management, sentiment, competitor, financial, metrics')
+        .eq('stock_id', stockId)
+        .single();
+      if (error) return null;
+      return data as StockAnalysis;
+    });
   }
 
   /** Lazily fetch ONE module's round-4 Q&A chains from raw_output.
    *  moduleKey is validated against a whitelist — never interpolated from raw input. */
   async getFactorChain(stockId: string, moduleKey: string): Promise<FactorChain | null> {
     if (!(RAW_OUTPUT_MODULES as readonly string[]).includes(moduleKey)) return null;
-    const { data, error } = await this.client
-      .from('stock_analyses')
-      .select(`chain:raw_output->${moduleKey}`)
-      .eq('stock_id', stockId)
-      .single();
-    if (error) return null;
-    return parseFactorChain((data as { chain?: unknown } | null)?.chain);
+    return this.cached(`chain:${stockId}:${moduleKey}`, async () => {
+      const { data, error } = await this.client
+        .from('stock_analyses')
+        .select(`chain:raw_output->${moduleKey}`)
+        .eq('stock_id', stockId)
+        .single();
+      if (error) return null;
+      return parseFactorChain((data as { chain?: unknown } | null)?.chain);
+    });
   }
 
   /** Score evolution over runs. Backed by the analysis_score_history SQL view
    *  (doc/sql/analysis_score_history.sql) — returns [] until the view exists. */
   async getScoreHistory(stockId: string): Promise<ScoreHistoryPoint[]> {
     try {
-      const { data, error } = await this.client
-        .from('analysis_score_history')
-        .select('*')
-        .eq('stock_id', stockId)
-        .order('run_at');
-      if (error || !data) return [];
-      return data as ScoreHistoryPoint[];
+      return await this.cached(`history:${stockId}`, async () => {
+        const { data, error } = await this.client
+          .from('analysis_score_history')
+          .select('*')
+          .eq('stock_id', stockId)
+          .order('run_at');
+        if (error || !data) return [];
+        return data as ScoreHistoryPoint[];
+      });
     } catch {
       return [];
     }

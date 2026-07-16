@@ -27,8 +27,8 @@
       <!-- Infobox floated right inside the article -->
       <div class="qp-infobox">
         <div class="qp-infobox-head">{{ stock.ticker }}</div>
-        <div *ngIf="stock.logo_url" class="qp-infobox-logo-wrap">
-          <img [src]="stock.logo_url" [alt]="stock.name" class="qp-infobox-logo">
+        <div *ngIf="logoUrl && !logoFailed" class="qp-infobox-logo-wrap">
+          <img [src]="logoUrl" [alt]="stock.name" class="qp-infobox-logo" (error)="logoFailed = true">
         </div>
         <div class="qp-infobox-row">
           <span class="qp-infobox-label">Exchange</span>

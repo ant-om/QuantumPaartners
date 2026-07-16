@@ -1,10 +1,13 @@
 import {
   Component,
+  Inject,
   NgZone,
   OnDestroy,
   OnInit,
   ChangeDetectorRef,
+  PLATFORM_ID,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { QuotesService, Quote } from '../../services/quotes.service';
 
 /** Broker-style running ticker tape. Shows a curated set of popular tickers,
@@ -31,11 +34,13 @@ export class TickerTapeComponent implements OnInit, OnDestroy {
     private quotesSvc: QuotesService,
     private zone: NgZone,
     private cdr: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) private platformId: object,
   ) {}
 
   ngOnInit(): void {
-    // placeholders first so the tape paints instantly
+    // placeholders first so the tape paints instantly (also what SSR renders)
     this.quotes = this.symbols.map(t => ({ ticker: t }));
+    if (!isPlatformBrowser(this.platformId)) return; // live quotes are browser-only
     this.refresh();
     // poll outside Angular to avoid spurious change-detection churn
     this.zone.runOutsideAngular(() => {
