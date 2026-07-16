@@ -51,6 +51,40 @@ async function buildSitemap(): Promise<string> {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 
+/** /api/newsletter/latest — latest newsletter edition for the /newsletter page.
+ *  Requires EDITIONS_SUPABASE_KEY in the server environment; returns 204 when
+ *  unset (the page hides the section). Cached ~15 min. */
+let editionCache: { body: unknown; at: number } | null = null;
+
+app.get('/api/newsletter/latest', async (req, res) => {
+  const editionsKey = process.env['EDITIONS_SUPABASE_KEY'] ?? '';
+  if (!editionsKey) {
+    res.status(204).end();
+    return;
+  }
+  if (editionCache && Date.now() - editionCache.at < 15 * 60 * 1000) {
+    res.json(editionCache.body);
+    return;
+  }
+  try {
+    const url = process.env['EDITIONS_SUPABASE_URL'] ?? 'https://zxxpowkxwfweziabalqf.supabase.co';
+    const r = await fetch(
+      `${url}/rest/v1/editions?select=ticker,date,edition_text,word_count,generated_at&order=date.desc,generated_at.desc&limit=1`,
+      { headers: { apikey: editionsKey, Authorization: `Bearer ${editionsKey}` } },
+    );
+    if (!r.ok) throw new Error(String(r.status));
+    const rows = (await r.json()) as unknown[];
+    if (!Array.isArray(rows) || !rows.length) {
+      res.status(204).end();
+      return;
+    }
+    editionCache = { body: rows[0], at: Date.now() };
+    res.json(rows[0]);
+  } catch {
+    res.status(503).json({ error: 'editions unavailable' });
+  }
+});
+
 app.get('/sitemap.xml', (req, res) => {
   const fresh = sitemapCache && Date.now() - sitemapCache.at < SITEMAP_TTL_MS;
   if (fresh) {

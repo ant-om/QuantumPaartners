@@ -604,6 +604,37 @@ a { color: inherit; text-decoration: none; }
   margin-top: 20px;
 }
 
+/* Latest newsletter edition */
+.qp-edition {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--claret);
+  border-radius: var(--r-lg);
+  padding: 22px 24px;
+}
+.qp-edition-masthead {
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+.qp-edition-body {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--text-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+.qp-edition-body::first-line {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  color: var(--claret);
+}
+
 /* ── Loading ────────────────────────────────────────────── */
 .qp-loading {
   color: var(--text-muted);

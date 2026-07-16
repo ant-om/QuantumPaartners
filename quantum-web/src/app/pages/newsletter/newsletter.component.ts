@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { SeoService } from '../../services/seo.service';
+import { NewsletterService, NewsletterEdition } from '../../services/newsletter.service';
 
 @Component({
   selector: 'app-newsletter-page',
@@ -26,16 +27,29 @@ import { SeoService } from '../../services/seo.service';
           AI-generated research for informational purposes only. Not investment advice.
         </p>
       </div>
+
+      <!-- Latest edition (hydrates in the browser; hidden when unavailable) -->
+      <div class="qp-section" *ngIf="edition">
+        <h2 class="qp-section-heading">The latest edition</h2>
+        <article class="qp-edition">
+          <div class="qp-edition-masthead qp-mono">{{ edition.date | date:'fullDate' }} · {{ edition.word_count }} words</div>
+          <pre class="qp-edition-body">{{ edition.edition_text }}</pre>
+        </article>
+      </div>
     </div>
   `,
 })
 export class NewsletterPageComponent implements OnInit {
-  constructor(private seo: SeoService) {}
-  ngOnInit(): void {
+  edition: NewsletterEdition | null = null;
+
+  constructor(private seo: SeoService, private newsletter: NewsletterService) {}
+
+  async ngOnInit(): Promise<void> {
     this.seo.set({
       title: 'Get the free Stock Bar newsletter',
       description: "The day's AI stock analysis, distilled into one plain-English read. Free, no paywall, unsubscribe anytime.",
       canonicalPath: '/newsletter',
     });
+    this.edition = await this.newsletter.getLatestEdition();
   }
 }
