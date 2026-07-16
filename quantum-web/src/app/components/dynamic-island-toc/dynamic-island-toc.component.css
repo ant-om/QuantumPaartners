@@ -2,8 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(4px);
+  background: rgba(51, 48, 46, 0.18);
 }
 
 .di-wrapper {
@@ -13,12 +12,10 @@
   transform: translateX(-50%);
   z-index: 9999;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(15, 18, 24, 0.82);
-  backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  background: var(--card);
   color: var(--text);
-  box-shadow: 0 25px 60px -18px rgba(0, 0, 0, 0.8),
-              0 0 0 0.5px rgba(255, 255, 255, 0.04);
+  box-shadow: 0 12px 32px -12px rgba(51, 48, 46, 0.25);
 }
 
 /* ── Collapsed pill ─────────────────────────────────────── */
@@ -36,8 +33,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
+  background: var(--claret);
   flex-shrink: 0;
 }
 
@@ -134,7 +130,7 @@
 }
 
 .di-item:not(.di-item--active):hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
   color: var(--text-2);
 }
 
@@ -154,8 +150,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  background: var(--claret);
   flex-shrink: 0;
   margin-left: 12px;
 }

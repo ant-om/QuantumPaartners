@@ -21,13 +21,12 @@ import { Component, HostListener } from '@angular/core';
       position: fixed;
       top: var(--tape-h, 36px); left: 0; right: 0;
       z-index: 100;
-      transition: background 0.3s, border-color 0.3s, backdrop-filter 0.3s;
+      transition: background 0.3s, border-color 0.3s;
       border-bottom: 1px solid transparent;
     }
     .qp-nav--scrolled {
-      background: rgba(7, 9, 13, 0.72);
+      background: rgba(251, 242, 231, 0.96);
       border-bottom-color: var(--border);
-      backdrop-filter: blur(16px);
     }
     .qp-nav-inner {
       max-width: 1240px;
@@ -47,14 +46,7 @@ import { Component, HostListener } from '@angular/core';
     }
     .qp-nav-pulse {
       width: 6px; height: 6px; border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
-      animation: navpulse 2.4s ease-out infinite;
-    }
-    @keyframes navpulse {
-      0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
-      70%  { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+      background: var(--claret);
     }
     @media (max-width: 560px) { .qp-nav-tag { display: none; } }
   `],

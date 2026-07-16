@@ -6,27 +6,27 @@ User decisions: light FT theme · factor chain = round-4 Q&A from `raw_output` (
 ## Phase 1 — CAPABILITY A: Editorial FT-Style Theme (+ D1 env hygiene)
 
 ### Epic D1.1 — Environment hygiene
-- [ ] Fill `environment.prod.ts` (real supabaseUrl/anonKey/priceApiUrl) + add `fileReplacements` to angular.json production config
+- [x] Fill `environment.prod.ts` (real supabaseUrl/anonKey/priceApiUrl) + add `fileReplacements` to angular.json production config
 
 ### Epic A1.1 — Token system + font swap (`src/styles.css`, `src/index.html`)
-- [ ] Rewrite `:root`: `--bg:#FBF2E7`, `--bg-wash:#F4E8D9`, `--card:#FFF`, `--text:#33302E`, accents claret `#990F3D` / oxford `#0F5499` / teal `#0D7680`, `--bull:#147B58`, `--bear:#A81E1E`; delete `--accent-grad`, `--glow`; radii 2/4/6px; faint shadows
-- [ ] Fonts: Source Serif 4 (display) + Inter Tight (body) + JetBrains Mono (numbers); update Google Fonts link; theme-color `#FBF2E7`
-- [ ] Remove dark machinery: grain overlay, `.qp-glass`→`.qp-panel`, gradient text→solid claret; rework `.qp-btn`/`.qp-eyebrow`/`.qp-badge`/`.qp-infobox`/`.qp-section-heading`
+- [x] Rewrite `:root`: `--bg:#FBF2E7`, `--bg-wash:#F4E8D9`, `--card:#FFF`, `--text:#33302E`, accents claret `#990F3D` / oxford `#0F5499` / teal `#0D7680`, `--bull:#147B58`, `--bear:#A81E1E`; delete `--accent-grad`, `--glow`; radii 2/4/6px; faint shadows
+- [x] Fonts: Source Serif 4 (display) + Inter Tight (body) + JetBrains Mono (numbers); update Google Fonts link; theme-color `#FBF2E7`
+- [x] Remove dark machinery: grain overlay, `.qp-glass`→`.qp-panel`, gradient text→solid claret; rework `.qp-btn`/`.qp-eyebrow`/`.qp-badge`/`.qp-infobox`/`.qp-section-heading`
 
 ### Epic A1.2 — Component restyle sweep
-- [ ] nav, ticker-tape, sentiment-chip, score-gauge, analysis-section, dynamic-island-toc, metric-charts, home/stock-detail/app css
-- [ ] `grep -rn "34d399\|22d3ee\|07090d" src/` → empty
+- [x] nav, ticker-tape, sentiment-chip, score-gauge, analysis-section, dynamic-island-toc, metric-charts, home/stock-detail/app css
+- [x] `grep -rn "34d399\|22d3ee\|07090d" src/` → empty
 
 ### Epic A2.1 — Delete decorative machinery & dead code
-- [ ] Delete `stock-fan/`, `stock-carousel/`, `hero-backdrop/`; clean module + home template
-- [ ] `npm uninstall gsap embla-carousel`; build green
+- [x] Delete `stock-fan/`, `stock-carousel/`, `hero-backdrop/`; clean module + home template
+- [x] `npm uninstall gsap embla-carousel`; build green
 
 ### Epic A2.2 — Professional stock-card grid
-- [ ] Create `components/stock-card/` (white, 1px border, claret top bar, monogram fallback, real `<a routerLink>`)
-- [ ] Home grid `repeat(auto-fill,minmax(240px,1fr))`
+- [x] Create `components/stock-card/` (white, 1px border, claret top bar, monogram fallback, real `<a routerLink>`)
+- [x] Home grid `repeat(auto-fill,minmax(240px,1fr))`
 
 ### Epic A3.1 — Homepage editorial layout
-- [ ] Hero (serif headline, search, stats, newsletter slot), coverage grid, how-it-works (real L1→L5), methodology strip, footer with /about /newsletter
+- [x] Hero (serif headline, search, stats, newsletter slot), coverage grid, how-it-works (real L1→L5), methodology strip, footer with /about /newsletter
 
 ## Phase 2 — CAPABILITY B: Stock Page Restructure
 

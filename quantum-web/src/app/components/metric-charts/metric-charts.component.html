@@ -13,19 +13,19 @@
     <div class="qp-chart-head">
       <span class="qp-chart-title">Price — last 30 days</span>
       <span class="qp-legend">
-        <span class="qp-legend-item"><span class="qp-legend-dot" style="background:#22d3ee"></span>Close</span>
-        <span class="qp-legend-item" *ngIf="bollinger"><span class="qp-legend-dot" style="background:rgba(34,211,238,0.45)"></span>Bollinger</span>
+        <span class="qp-legend-item"><span class="qp-legend-dot" style="background:#0F5499"></span>Close</span>
+        <span class="qp-legend-item" *ngIf="bollinger"><span class="qp-legend-dot" style="background:rgba(15,84,153,0.45)"></span>Bollinger</span>
         <span class="qp-legend-item" *ngFor="let r of priceRefs"><span class="qp-legend-dot" [style.background]="r.color"></span>{{ r.label }}</span>
       </span>
     </div>
     <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="qp-svg">
-      <line *ngFor="let t of priceYTicks" [attr.x1]="pad.l" [attr.x2]="W - pad.r" [attr.y1]="t.y" [attr.y2]="t.y" stroke="rgba(255,255,255,0.06)" />
-      <text *ngFor="let t of priceYTicks" [attr.x]="pad.l - 6" [attr.y]="t.y + 3" text-anchor="end" font-size="10" fill="#6b7480" font-family="'JetBrains Mono', monospace">{{ t.label }}</text>
+      <line *ngFor="let t of priceYTicks" [attr.x1]="pad.l" [attr.x2]="W - pad.r" [attr.y1]="t.y" [attr.y2]="t.y" stroke="rgba(51,48,46,0.08)" />
+      <text *ngFor="let t of priceYTicks" [attr.x]="pad.l - 6" [attr.y]="t.y + 3" text-anchor="end" font-size="10" fill="#8C847C" font-family="'JetBrains Mono', monospace">{{ t.label }}</text>
       <rect *ngIf="bollinger" [attr.x]="pad.l" [attr.y]="bollinger.top" [attr.width]="W - pad.l - pad.r"
-            [attr.height]="bollinger.bottom - bollinger.top" fill="#22d3ee" fill-opacity="0.12" />
+            [attr.height]="bollinger.bottom - bollinger.top" fill="#0F5499" fill-opacity="0.12" />
       <line *ngFor="let r of priceRefs" [attr.x1]="pad.l" [attr.x2]="W - pad.r" [attr.y1]="r.y" [attr.y2]="r.y"
             [attr.stroke]="r.color" stroke-width="1.2" stroke-dasharray="4 3" />
-      <polyline *ngIf="priceLine" [attr.points]="priceLine.points" fill="none" stroke="#22d3ee" stroke-width="1.8" />
+      <polyline *ngIf="priceLine" [attr.points]="priceLine.points" fill="none" stroke="#0F5499" stroke-width="1.8" />
     </svg>
   </div>
 
@@ -38,14 +38,14 @@
       </span>
     </div>
     <svg [attr.viewBox]="'0 0 ' + barW + ' ' + barH" class="qp-svg">
-      <line [attr.x1]="40" [attr.x2]="barW - 40" y1="44" y2="44" stroke="rgba(255,255,255,0.12)" stroke-width="2" />
-      <rect [attr.x]="mc.lowerX" y="36" [attr.width]="mc.upperX - mc.lowerX" height="16" rx="4" fill="#22d3ee" fill-opacity="0.22" />
-      <line [attr.x1]="mc.lastX" [attr.x2]="mc.lastX" y1="28" y2="60" stroke="#eef1f6" stroke-width="2" />
-      <line [attr.x1]="mc.meanX" [attr.x2]="mc.meanX" y1="30" y2="58" stroke="#34d399" stroke-width="2.5" />
-      <text [attr.x]="mc.lowerX" y="26" text-anchor="middle" font-size="10" fill="#a7b0bf" font-family="'JetBrains Mono', monospace">${{ mc.lower | number:'1.0-0' }}</text>
-      <text [attr.x]="mc.upperX" y="26" text-anchor="middle" font-size="10" fill="#a7b0bf" font-family="'JetBrains Mono', monospace">${{ mc.upper | number:'1.0-0' }}</text>
-      <text [attr.x]="mc.meanX" y="74" text-anchor="middle" font-size="10" fill="#34d399" font-weight="700" font-family="'JetBrains Mono', monospace">mean ${{ mc.mean | number:'1.0-0' }}</text>
-      <text [attr.x]="mc.lastX" y="74" text-anchor="middle" font-size="10" fill="#eef1f6" font-family="'JetBrains Mono', monospace">last ${{ mc.last | number:'1.0-0' }}</text>
+      <line [attr.x1]="40" [attr.x2]="barW - 40" y1="44" y2="44" stroke="rgba(51,48,46,0.14)" stroke-width="2" />
+      <rect [attr.x]="mc.lowerX" y="36" [attr.width]="mc.upperX - mc.lowerX" height="16" rx="4" fill="#0F5499" fill-opacity="0.22" />
+      <line [attr.x1]="mc.lastX" [attr.x2]="mc.lastX" y1="28" y2="60" stroke="#33302E" stroke-width="2" />
+      <line [attr.x1]="mc.meanX" [attr.x2]="mc.meanX" y1="30" y2="58" stroke="#147B58" stroke-width="2.5" />
+      <text [attr.x]="mc.lowerX" y="26" text-anchor="middle" font-size="10" fill="#66605B" font-family="'JetBrains Mono', monospace">${{ mc.lower | number:'1.0-0' }}</text>
+      <text [attr.x]="mc.upperX" y="26" text-anchor="middle" font-size="10" fill="#66605B" font-family="'JetBrains Mono', monospace">${{ mc.upper | number:'1.0-0' }}</text>
+      <text [attr.x]="mc.meanX" y="74" text-anchor="middle" font-size="10" fill="#147B58" font-weight="700" font-family="'JetBrains Mono', monospace">mean ${{ mc.mean | number:'1.0-0' }}</text>
+      <text [attr.x]="mc.lastX" y="74" text-anchor="middle" font-size="10" fill="#33302E" font-family="'JetBrains Mono', monospace">last ${{ mc.last | number:'1.0-0' }}</text>
     </svg>
   </div>
 
@@ -53,12 +53,12 @@
   <div class="qp-chart" *ngIf="hasVix">
     <div class="qp-chart-head">
       <span class="qp-chart-title">VIX — last 30 days</span>
-      <span class="qp-legend"><span class="qp-legend-item"><span class="qp-legend-dot" style="background:#a855f7"></span>VIX</span></span>
+      <span class="qp-legend"><span class="qp-legend-item"><span class="qp-legend-dot" style="background:#0D7680"></span>VIX</span></span>
     </div>
     <svg [attr.viewBox]="'0 0 ' + W + ' 150'" class="qp-svg">
-      <line *ngFor="let t of vixYTicks" [attr.x1]="pad.l" [attr.x2]="W - pad.r" [attr.y1]="t.y" [attr.y2]="t.y" stroke="rgba(255,255,255,0.06)" />
-      <text *ngFor="let t of vixYTicks" [attr.x]="pad.l - 6" [attr.y]="t.y + 3" text-anchor="end" font-size="10" fill="#6b7480" font-family="'JetBrains Mono', monospace">{{ t.label }}</text>
-      <polyline *ngIf="vixLine" [attr.points]="vixLine.points" fill="none" stroke="#a855f7" stroke-width="1.8" />
+      <line *ngFor="let t of vixYTicks" [attr.x1]="pad.l" [attr.x2]="W - pad.r" [attr.y1]="t.y" [attr.y2]="t.y" stroke="rgba(51,48,46,0.08)" />
+      <text *ngFor="let t of vixYTicks" [attr.x]="pad.l - 6" [attr.y]="t.y + 3" text-anchor="end" font-size="10" fill="#8C847C" font-family="'JetBrains Mono', monospace">{{ t.label }}</text>
+      <polyline *ngIf="vixLine" [attr.points]="vixLine.points" fill="none" stroke="#0D7680" stroke-width="1.8" />
     </svg>
   </div>
 

@@ -11,14 +11,13 @@ import { Sentiment } from '../../services/supabase.service';
     </span>
   `,
   styles: [`
-    .qp-chip { display:inline-flex; align-items:center; gap:6px; border-radius:999px;
+    .qp-chip { display:inline-flex; align-items:center; gap:6px; border-radius:var(--r-sm);
       padding:3px 11px; font-family:var(--font-mono); font-size:0.66rem; font-weight:500;
       letter-spacing:0.08em; text-transform:uppercase; border:1px solid transparent; }
-    .qp-chip-dot { width:6px; height:6px; border-radius:50%; background:currentColor;
-      box-shadow:0 0 8px currentColor; }
-    .pos { background:rgba(52,211,153,0.12); color:#34d399; border-color:rgba(52,211,153,0.25); }
-    .neu { background:rgba(255,255,255,0.06); color:#a7b0bf; border-color:rgba(255,255,255,0.12); }
-    .neg { background:rgba(248,113,113,0.12); color:#f87171; border-color:rgba(248,113,113,0.25); }
+    .qp-chip-dot { width:6px; height:6px; border-radius:50%; background:currentColor; }
+    .pos { background:rgba(20,123,88,0.09); color:var(--bull); border-color:rgba(20,123,88,0.3); }
+    .neu { background:var(--bg-wash); color:var(--text-2); border-color:var(--border); }
+    .neg { background:rgba(168,30,30,0.07); color:var(--bear); border-color:rgba(168,30,30,0.28); }
   `],
 })
 export class SentimentChipComponent {

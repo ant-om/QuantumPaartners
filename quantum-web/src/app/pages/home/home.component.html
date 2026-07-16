@@ -1,18 +1,16 @@
 <!-- ───────────────── Hero ───────────────── -->
 <section class="qp-home-hero">
-  <app-hero-backdrop></app-hero-backdrop>
-
   <div class="qp-hero-content">
-    <div class="qp-eyebrow qp-hero-eyebrow">Powered by QuantumGPT</div>
+    <div class="qp-eyebrow qp-hero-eyebrow">Free AI equity research</div>
 
     <h1 class="qp-home-title">
-      Smarter equity calls,<br>
-      written by <span class="qp-accent-text">AI</span>.
+      Serious stock analysis,<br>
+      written by <span class="qp-accent-text">AI</span>. Verified daily.
     </h1>
 
     <p class="qp-home-sub">
-      Deep, structured analysis on every stock — macro, financials, sentiment and
-      price action, distilled into one intelligent read.
+      Structured, sourced analysis on every stock we cover — macro, financials,
+      sentiment and price action, distilled into one clear read.
     </p>
 
     <input
@@ -31,20 +29,19 @@
       <span class="qp-hero-stats-dot">·</span>
       <span>updated <b>daily</b></span>
     </div>
-  </div>
 
-  <div class="qp-scroll-cue" aria-hidden="true">
-    <span></span>
+    <!-- Newsletter signup slot — wired up in Phase 3 (C2) -->
+    <div class="qp-hero-newsletter"></div>
   </div>
 </section>
 
-<!-- ───────────────── Carousel ───────────────── -->
+<!-- ───────────────── Coverage grid ───────────────── -->
 <section class="qp-home-body">
   <div *ngIf="loading" class="qp-loading">Loading the desk…</div>
 
   <div *ngIf="!loading">
     <div appReveal class="qp-section-head">
-      <div class="qp-eyebrow">{{ query.trim() ? 'Search' : 'The desk' }}</div>
+      <div class="qp-eyebrow">{{ query.trim() ? 'Search' : 'Coverage' }}</div>
       <h2 class="qp-featured-h">
         {{ query.trim() ? 'Results for "' + query.trim() + '"' : 'Every stock we cover' }}
       </h2>
@@ -52,8 +49,8 @@
 
     <div *ngIf="filtered.length === 0" class="qp-loading">No stocks match that search.</div>
 
-    <div appReveal [revealDelay]="60">
-      <app-stock-fan *ngIf="filtered.length > 0" [stocks]="filtered"></app-stock-fan>
+    <div appReveal [revealDelay]="60" class="qp-stock-grid" *ngIf="filtered.length > 0">
+      <app-stock-card *ngFor="let s of filtered" [stock]="s"></app-stock-card>
     </div>
   </div>
 </section>
@@ -62,24 +59,35 @@
 <section class="qp-how" *ngIf="!loading">
   <div appReveal class="qp-how-head">
     <div class="qp-eyebrow">How it works</div>
-    <h2 class="qp-how-title">From raw filings to a single, confident read.</h2>
+    <h2 class="qp-how-title">From raw data to a single, honest read.</h2>
   </div>
   <div class="qp-how-grid">
-    <div appReveal [revealDelay]="0" class="qp-how-card qp-glass">
-      <div class="qp-how-num qp-mono">01</div>
-      <h3 class="qp-how-card-title">Ingest</h3>
-      <p>Market data, filings and news flow into an AI pipeline built on GPT-class models and a vector knowledge base.</p>
+    <div appReveal [revealDelay]="0" class="qp-how-card qp-panel">
+      <div class="qp-how-num qp-mono">L1 — RETRIEVE</div>
+      <h3 class="qp-how-card-title">Gather the evidence</h3>
+      <p>Market data, filings, news and policy signals are pulled fresh for each stock and indexed into a vector knowledge base.</p>
     </div>
-    <div appReveal [revealDelay]="90" class="qp-how-card qp-glass">
-      <div class="qp-how-num qp-mono">02</div>
-      <h3 class="qp-how-card-title">Reason</h3>
-      <p>Seven specialist lenses — macro, political, financials, competition, management, sentiment and price — each score the name.</p>
+    <div appReveal [revealDelay]="90" class="qp-how-card qp-panel">
+      <div class="qp-how-num qp-mono">L2 — ANALYZE</div>
+      <h3 class="qp-how-card-title">Seven specialist lenses</h3>
+      <p>Macro, political, financials, competition, management, sentiment and price — each lens interrogates the evidence and scores the name independently.</p>
     </div>
-    <div appReveal [revealDelay]="180" class="qp-how-card qp-glass">
-      <div class="qp-how-num qp-mono">03</div>
-      <h3 class="qp-how-card-title">Distill</h3>
-      <p>Findings collapse into a structured, sourced briefing with a clear sentiment and conviction score per section.</p>
+    <div appReveal [revealDelay]="180" class="qp-how-card qp-panel">
+      <div class="qp-how-num qp-mono">L3–L5 — DEBATE &amp; DISTILL</div>
+      <h3 class="qp-how-card-title">Challenge, refine, publish</h3>
+      <p>The lenses cross-examine each other over multiple rounds, refine their answers, and collapse into one structured briefing with a score per factor.</p>
     </div>
+  </div>
+</section>
+
+<!-- ───────────────── Methodology strip ───────────────── -->
+<section class="qp-method-strip" *ngIf="!loading">
+  <div class="qp-method-strip-inner qp-mono">
+    <span>Free access</span>
+    <span class="qp-hero-stats-dot">·</span>
+    <span>Verified multi-agent analysis</span>
+    <span class="qp-hero-stats-dot">·</span>
+    <span>Updated daily</span>
   </div>
 </section>
 
@@ -90,6 +98,10 @@
       <span class="qp-brand-symbol">▲</span>
       <span class="qp-brand-name">Stock<span class="qp-brand-dot">·</span>Bar</span>
     </a>
+    <nav class="qp-footer-links">
+      <a routerLink="/about">About &amp; methodology</a>
+      <a routerLink="/newsletter">Newsletter</a>
+    </nav>
     <p class="qp-footer-note">
       A <strong>Quantum Partners</strong> product · © 2026.<br>
       AI-generated research for informational purposes only. Not investment advice.

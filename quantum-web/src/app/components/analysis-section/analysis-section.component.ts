@@ -36,7 +36,7 @@ import { SectionBlock } from '../../services/supabase.service';
   styles: [`
     .qp-asec { margin-top: 44px; }
     .qp-card { border:1px solid var(--border); border-radius:var(--r-md); padding:20px 22px;
-      margin-bottom:14px; background:var(--surface); backdrop-filter:blur(10px);
+      margin-bottom:14px; background:var(--surface);
       transition:border-color .25s, background .25s; }
     .qp-card:hover { border-color:var(--border-strong); background:var(--surface-2); }
     .qp-card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; }
