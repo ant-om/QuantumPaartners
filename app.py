@@ -253,7 +253,7 @@ def build_rsi_payload(close):
 
 # ----- VaR -----
 def calculateVaR(risk, confidenceLevel, principal=1, numMonths=1):
-    vol = math.sqrt(risk)
+    vol = risk
     return abs(principal * norm.ppf(1 - confidenceLevel, 0, 1) * vol * math.sqrt(numMonths))
 
 
