@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { LogoService } from '../../services/logo.service';
 import { FACTORS, FactorDef } from '../../models/factors';
@@ -24,6 +24,31 @@ export class StockDetailComponent implements OnInit {
   }
 
   readonly factors: FactorDef[] = FACTORS;
+
+  /** R5 committee verdict — present only on new-structurer rows. Strictly
+   *  feature-detected: anything malformed falls back to the legacy gauge. */
+  get verdict(): AnalysisVerdict | null {
+    const v = this.analysis?.summary?.verdict;
+    if (!v || !['BUY', 'HOLD', 'SELL'].includes(v.recommendation)) return null;
+    return v;
+  }
+
+  /** Horizon strip rows (Short / Medium / Long), skipping absent horizons.
+   *  Computed once per analysis load — not a getter, to keep *ngFor stable. */
+  horizonRows: { label: string; range: string; stance: HorizonStance; rationale: string }[] = [];
+
+  private buildHorizonRows(): void {
+    const h = this.verdict?.horizons;
+    if (!h) { this.horizonRows = []; return; }
+    const defs: { key: 'short' | 'medium' | 'long'; label: string; range: string }[] = [
+      { key: 'short', label: 'Short', range: '0–3 mo' },
+      { key: 'medium', label: 'Medium', range: '3–12 mo' },
+      { key: 'long', label: 'Long', range: '12+ mo' },
+    ];
+    this.horizonRows = defs
+      .filter(d => !!h[d.key]?.stance)
+      .map(d => ({ label: d.label, range: d.range, stance: h[d.key]!.stance, rationale: h[d.key]!.rationale ?? '' }));
+  }
 
   // TOC entries — anchors match the section ids in the template
   get tocSections() {
@@ -54,6 +79,7 @@ export class StockDetailComponent implements OnInit {
       return;
     }
     this.analysis = await this.supabase.getAnalysis(this.stock.id);
+    this.buildHorizonRows();
     this.loading = false;
     this.seo.set({
       title: `${this.stock.ticker} Stock Analysis & AI Score — ${this.stock.name}`,

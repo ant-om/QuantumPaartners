@@ -58,8 +58,8 @@
         <pre *ngIf="chain?.raw" class="qp-chain-raw">{{ chain!.raw }}</pre>
 
         <div *ngFor="let step of chain?.qa; let i = index" class="qp-chain-step">
-          <h3 class="qp-chain-q">Step {{ i + 1 }}</h3>
-          <div class="qp-chain-provenance qp-mono">{{ step.label }}</div>
+          <h3 class="qp-chain-q">{{ chainTopics ? chainTopics[i] : 'Step ' + (i + 1) }}</h3>
+          <div *ngIf="showProvenance(step, i)" class="qp-chain-provenance qp-mono">{{ step.label }}</div>
           <pre class="qp-chain-a">{{ step.text }}</pre>
         </div>
 

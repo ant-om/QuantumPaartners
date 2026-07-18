@@ -54,3 +54,93 @@
   margin-bottom: 6px;
 }
 .qp-summary-bullets li::marker { color: var(--accent); }
+
+/* ── Committee verdict (new R5 rows) — replaces the gauge in the anchor ── */
+.qp-verdict {
+  flex-shrink: 0;
+  min-width: 150px;
+  padding: 14px 20px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-wash);
+  text-align: center;
+}
+.qp-verdict-kicker {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+.qp-verdict-rec {
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+.qp-verdict.buy  .qp-verdict-rec { color: var(--claret); }
+.qp-verdict.hold .qp-verdict-rec { color: var(--oxford); }
+.qp-verdict.sell .qp-verdict-rec { color: var(--bear); }
+.qp-verdict-conviction {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 3px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.qp-verdict-conviction.high { color: var(--text); border-color: var(--border-strong); }
+.qp-verdict-conviction.low  { color: var(--text-muted); }
+
+/* Horizon strip — Short / Medium / Long stance rows under the anchor */
+.qp-horizons {
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.qp-horizon-row {
+  display: grid;
+  grid-template-columns: 118px 92px 1fr;
+  gap: 14px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px dashed var(--border);
+}
+.qp-horizon-row:last-child { border-bottom: 0; padding-bottom: 2px; }
+.qp-horizon-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+}
+.qp-horizon-range { color: var(--text-muted); font-weight: 500; margin-left: 2px; }
+.qp-horizon-stance {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.qp-horizon-stance.bullish { color: var(--bull); }
+.qp-horizon-stance.bearish { color: var(--bear); }
+.qp-horizon-stance.neutral { color: var(--text-2); }
+.qp-horizon-rationale {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+@media (max-width: 640px) {
+  .qp-verdict { align-self: stretch; }
+  .qp-horizon-row { grid-template-columns: 1fr; gap: 3px; }
+}

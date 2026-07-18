@@ -20,6 +20,69 @@ export const FACTORS: FactorDef[] = [
   { key: 'financial',  module: 'fs',          label: 'Financial Health',          slug: 'financial',  short: 'Financials' },
 ];
 
+/** Ordered chain-topic labels per raw_output module key (verified against the
+ *  live L2 prompts). Used as step headings ONLY when the parsed chain count for
+ *  a module exactly matches the list length — otherwise the generic
+ *  "Question N" / provenance labels are kept (legacy rows, partial runs). */
+export const CHAIN_TOPICS: Record<string, string[]> = {
+  macro: [
+    'International Macroeconomics',
+    'US Monetary Policy & Government',
+    'US Economic Data & Indicators',
+    'Stock-Specific Macro Impact',
+    'Scenario Development',
+    'Conclusion',
+  ],
+  political: [
+    'External Political Events & Institutions',
+    'Internal Country-Specific Factors',
+    'Political Theory Lenses',
+    'Key Individuals & Non-State Actors',
+    'Prediction Markets vs News Timeline',
+    'Conclusion',
+  ],
+  fs: [
+    'Revenue & Income Statement',
+    'Balance Sheet',
+    'Cash Flow Statement',
+    'Key Financial Ratios',
+    'Overlooked 10-K/10-Q Points',
+    'Conclusion',
+  ],
+  competition: [
+    'External Environment',
+    'Porter\'s Five Forces',
+    'Internal Capabilities',
+    'Additional Insights',
+    'Scenario Development',
+    'Conclusion',
+  ],
+  management: [
+    'Leadership & Strategy Execution',
+    'Board Governance & Transparency',
+    'Executive Compensation & Incentives',
+    'Overlooked Material Points',
+    'Scenario Development',
+    'Conclusion',
+  ],
+  sentiment: [
+    'Global Economy Sentiment',
+    'Industry Sentiment',
+    'Company-Specific Sentiment',
+    'Integration & Final Analysis',
+    'Scenario Development',
+    'Conclusion',
+  ],
+  price: [
+    'Moving Averages',
+    'GARCH Volatility & VaR',
+    'Fama-French & Risk-Adjusted Returns',
+    'RSI',
+    'Scenario Development',
+    'Conclusion',
+  ],
+};
+
 export function factorBySlug(slug: string | null | undefined): FactorDef | null {
   if (!slug) return null;
   return FACTORS.find(f => f.slug === slug.toLowerCase()) ?? null;

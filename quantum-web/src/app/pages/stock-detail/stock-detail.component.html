@@ -55,11 +55,22 @@
       <!-- Company intro -->
       <p *ngIf="stock.description" class="qp-intro">{{ stock.description }}</p>
 
-      <!-- Score anchor: the single headline score (Danelfin-style) -->
+      <!-- Score anchor: verdict panel (new R5 rows) or the numeric score gauge (legacy) -->
       <div *ngIf="analysis?.summary as sum" appReveal id="section-summary" class="qp-summary">
         <div class="qp-score-anchor">
-          <div class="qp-score-anchor-gauge" *ngIf="sum.score !== undefined && sum.score !== null">
+          <div class="qp-score-anchor-gauge" *ngIf="!verdict && sum.score !== undefined && sum.score !== null">
             <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
+          </div>
+          <div *ngIf="verdict as v" class="qp-verdict"
+               [class.buy]="v.recommendation === 'BUY'"
+               [class.hold]="v.recommendation === 'HOLD'"
+               [class.sell]="v.recommendation === 'SELL'">
+            <div class="qp-verdict-kicker">Committee verdict</div>
+            <div class="qp-verdict-rec">{{ v.recommendation }}</div>
+            <span class="qp-verdict-conviction"
+                  [class.high]="v.conviction === 'HIGH'"
+                  [class.medium]="v.conviction === 'MEDIUM'"
+                  [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
           </div>
           <div>
             <div class="qp-summary-head">
@@ -72,6 +83,20 @@
             <ul *ngIf="sum.bullets?.length" class="qp-summary-bullets">
               <li *ngFor="let b of sum.bullets">{{ b }}</li>
             </ul>
+          </div>
+        </div>
+
+        <!-- Horizon strip: part of the verdict panel, full width below the anchor -->
+        <div *ngIf="horizonRows.length" class="qp-horizons">
+          <div *ngFor="let h of horizonRows" class="qp-horizon-row">
+            <div class="qp-horizon-label qp-mono">
+              {{ h.label }} <span class="qp-horizon-range">{{ h.range }}</span>
+            </div>
+            <div class="qp-horizon-stance qp-mono"
+                 [class.bullish]="h.stance === 'BULLISH'"
+                 [class.bearish]="h.stance === 'BEARISH'"
+                 [class.neutral]="h.stance === 'NEUTRAL'">{{ h.stance }}</div>
+            <div class="qp-horizon-rationale">{{ h.rationale }}</div>
           </div>
         </div>
       </div>

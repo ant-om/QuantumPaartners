@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, FactorChain } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
-import { FactorDef, FactorDisplay, factorBySlug, factorDisplay, prevNextFactor } from '../../models/factors';
+import { CHAIN_TOPICS, FactorDef, FactorDisplay, factorBySlug, factorDisplay, prevNextFactor } from '../../models/factors';
 
 /** /stock/:ticker/:factor — one factor's full analysis + the round-4 Q&A
  *  reasoning chain (our differentiator: the reasoning is inspectable). */
@@ -17,6 +17,9 @@ export class FactorDetailComponent implements OnInit {
   factor: FactorDef | null = null;
   display: FactorDisplay | null = null;
   chain: FactorChain | null = null;
+  /** Chain-topic headings — set ONLY when the parsed chain count matches the
+   *  module's known topic list; null keeps the legacy "Question N" labels. */
+  chainTopics: string[] | null = null;
   chainLoading = true;
   prev: FactorDef | null = null;
   next: FactorDef | null = null;
@@ -46,6 +49,7 @@ export class FactorDetailComponent implements OnInit {
     this.loading = true;
     this.notFound = false;
     this.chain = null;
+    this.chainTopics = null;
     this.chainLoading = true;
 
     const factor = factorBySlug(slug);
@@ -91,7 +95,25 @@ export class FactorDetailComponent implements OnInit {
 
     // Round-4 chain is fetched lazily — it is NOT part of getAnalysis
     this.chain = await this.supabase.getFactorChain(this.stock.id, factor.module);
+    this.chainTopics = this.resolveChainTopics(factor.module, this.chain);
     this.chainLoading = false;
+  }
+
+  /** Topic labels apply only when the module's chain count matches the known
+   *  topic list exactly (qa steps + conclusion). Any mismatch → null → the
+   *  template keeps today's "Step N / Question N / provenance" rendering. */
+  private resolveChainTopics(module: string, chain: FactorChain | null): string[] | null {
+    if (!chain || chain.raw) return null;
+    const topics = CHAIN_TOPICS[module];
+    if (!topics) return null;
+    const total = chain.qa.length + (chain.conclusion ? 1 : 0);
+    return total === topics.length ? topics : null;
+  }
+
+  /** With topic headings active, the generic "Question N" fallback label adds
+   *  nothing — only real bracket-provenance headers stay as the secondary line. */
+  showProvenance(step: { label: string }, i: number): boolean {
+    return !this.chainTopics || step.label !== `Question ${i + 1}`;
   }
 
   get blocks(): SectionBlock[] | null {

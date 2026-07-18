@@ -28,12 +28,35 @@ export interface SectionBlock {
   score?: number; // 0-100
 }
 
+// ── R5 committee verdict (new structurer rows only — legacy rows lack it) ──
+export type VerdictRecommendation = 'BUY' | 'HOLD' | 'SELL';
+export type VerdictConviction = 'HIGH' | 'MEDIUM' | 'LOW';
+export type HorizonStance = 'BULLISH' | 'NEUTRAL' | 'BEARISH';
+
+export interface VerdictHorizon {
+  stance: HorizonStance;
+  rationale: string;
+}
+
+export interface AnalysisVerdict {
+  recommendation: VerdictRecommendation;
+  conviction: VerdictConviction;
+  horizons?: {
+    short?: VerdictHorizon;
+    medium?: VerdictHorizon;
+    long?: VerdictHorizon;
+  };
+}
+
 export interface AnalysisSummary {
   headline: string;
   narrative: string;
   bullets?: string[];
   overall_sentiment?: Sentiment;
-  score?: number;
+  /** Legacy numeric score; new R5-structurer rows may set this to null. */
+  score?: number | null;
+  /** New R5-structurer rows only. Feature-detect — absent on legacy rows. */
+  verdict?: AnalysisVerdict;
 }
 
 // Shape of the live Railway quant API (GET /analyze/<ticker>), stored as-is in `metrics`.
@@ -103,7 +126,10 @@ export type RawOutputModule = typeof RAW_OUTPUT_MODULES[number];
 /** Defensive parser for one module's Q&A chains. Live shape (captured 2026-07-16):
  *  { chain_1: "...", ..., chain_6: "..." } — plain text, usually prefixed with a
  *  "[Module | TICKER | date | Layer 2 | Q&A Chain N]" header line; the last chain
- *  is the module's synthesis/conclusion. Anything unexpected falls back to raw text. */
+ *  is the module's synthesis/conclusion. Chain count varies per module (e.g.
+ *  management now has 6) — never assume a fixed N. Anything unexpected falls
+ *  back to raw text. Keys starting with "_" (e.g. the new `_verbatim` sibling)
+ *  are metadata, not chains — ignored. */
 export function parseFactorChain(moduleData: unknown): FactorChain | null {
   if (moduleData === null || moduleData === undefined) return null;
 
@@ -113,7 +139,7 @@ export function parseFactorChain(moduleData: unknown): FactorChain | null {
   if (typeof moduleData !== 'object') return null;
 
   const entries = Object.entries(moduleData as Record<string, unknown>)
-    .filter(([, v]) => typeof v === 'string' && (v as string).trim().length > 0)
+    .filter(([k, v]) => !k.startsWith('_') && typeof v === 'string' && (v as string).trim().length > 0)
     .map(([k, v]) => {
       const m = /^chain[_ ]?(\d+)$/i.exec(k);
       return { order: m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER, key: k, text: (v as string).trim() };
