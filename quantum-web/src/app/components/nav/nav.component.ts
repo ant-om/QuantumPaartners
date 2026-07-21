@@ -10,8 +10,11 @@ import { Component, HostListener } from '@angular/core';
           <span class="qp-brand-symbol">▲</span>
           <span class="qp-brand-name">Stock<span class="qp-brand-dot">·</span>Bar</span>
         </a>
-        <span class="qp-nav-tag qp-mono">
-          <span class="qp-nav-pulse"></span>AI EQUITY INTELLIGENCE
+        <span class="qp-nav-right">
+          <span class="qp-nav-tag qp-mono">
+            <span class="qp-nav-pulse"></span>AI EQUITY INTELLIGENCE
+          </span>
+          <a routerLink="/about" class="qp-nav-about qp-mono">About</a>
         </span>
       </div>
     </header>
@@ -47,6 +50,26 @@ import { Component, HostListener } from '@angular/core';
     .qp-nav-pulse {
       width: 6px; height: 6px; border-radius: 50%;
       background: var(--claret);
+    }
+    .qp-nav-right {
+      display: inline-flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .qp-nav-about {
+      font-size: 0.66rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .qp-nav-about:hover {
+      color: var(--claret);
+      border-color: var(--claret);
     }
     @media (max-width: 560px) { .qp-nav-tag { display: none; } }
   `],

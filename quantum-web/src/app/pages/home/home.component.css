@@ -149,3 +149,21 @@
   max-width: 46ch;
 }
 .qp-footer-note strong { color: var(--text-2); font-weight: 600; }
+
+.qp-how-more { text-align: center; margin-top: 36px; }
+.qp-how-about-btn {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--claret);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 12px 26px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.qp-how-about-btn:hover {
+  border-color: var(--claret);
+  background: rgba(122, 28, 44, 0.05);
+}

@@ -59,25 +59,28 @@
 <!-- ───────────────── How it works ───────────────── -->
 <section class="qp-how" *ngIf="!loading">
   <div appReveal class="qp-how-head">
-    <div class="qp-eyebrow">How it works</div>
+    <div class="qp-eyebrow">About</div>
     <h2 class="qp-how-title">From raw data to a single, honest read.</h2>
   </div>
   <div class="qp-how-grid">
     <div appReveal [revealDelay]="0" class="qp-how-card qp-panel">
-      <div class="qp-how-num qp-mono">L1 — RETRIEVE</div>
-      <h3 class="qp-how-card-title">Gather the evidence</h3>
-      <p>Market data, filings, news and policy signals are pulled fresh for each stock and indexed into a vector knowledge base.</p>
+      <div class="qp-how-num qp-mono">01</div>
+      <h3 class="qp-how-card-title">Evidence first</h3>
+      <p>Every claim starts from primary sources — filings, market data, policy and news — gathered fresh for each stock, every day.</p>
     </div>
     <div appReveal [revealDelay]="90" class="qp-how-card qp-panel">
-      <div class="qp-how-num qp-mono">L2 — ANALYZE</div>
-      <h3 class="qp-how-card-title">Seven specialist lenses</h3>
-      <p>Macro, political, financials, competition, management, sentiment and price — each lens interrogates the evidence and scores the name independently.</p>
+      <div class="qp-how-num qp-mono">02</div>
+      <h3 class="qp-how-card-title">Seven independent lenses</h3>
+      <p>Macro, political, financials, competition, management, sentiment and price — each weighs the stock on its own terms.</p>
     </div>
     <div appReveal [revealDelay]="180" class="qp-how-card qp-panel">
-      <div class="qp-how-num qp-mono">L3–L5 — DEBATE &amp; DISTILL</div>
-      <h3 class="qp-how-card-title">Challenge, refine, publish</h3>
-      <p>The lenses cross-examine each other over multiple rounds, refine their answers, and collapse into one structured briefing with a score per factor.</p>
+      <div class="qp-how-num qp-mono">03</div>
+      <h3 class="qp-how-card-title">Debated before published</h3>
+      <p>Conclusions are challenged against each other, and only what survives makes the page — with a score per factor.</p>
     </div>
+  </div>
+  <div appReveal class="qp-how-more">
+    <a routerLink="/about" class="qp-how-about-btn">More about us →</a>
   </div>
 </section>
 
@@ -86,7 +89,7 @@
   <div class="qp-method-strip-inner qp-mono">
     <span>Free access</span>
     <span class="qp-hero-stats-dot">·</span>
-    <span>Verified multi-agent analysis</span>
+    <span>Source-linked analysis</span>
     <span class="qp-hero-stats-dot">·</span>
     <span>Updated daily</span>
   </div>
