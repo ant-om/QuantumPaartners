@@ -21,7 +21,8 @@ import { SectionBlock } from '../../services/supabase.service';
             </div>
           </div>
           <p *ngIf="b.takeaway" class="qp-card-takeaway">{{ b.takeaway }}</p>
-          <p *ngIf="b.body" class="qp-card-body">{{ b.body }}</p>
+          <div *ngIf="b.body" class="qp-card-body qp-md"
+               [innerHTML]="b.body | md : ticker : key"></div>
           <ul *ngIf="b.bullets && b.bullets.length" class="qp-card-bullets">
             <li *ngFor="let pt of b.bullets">{{ pt }}</li>
           </ul>
@@ -57,4 +58,8 @@ export class AnalysisSectionComponent {
   @Input() key = '';
   @Input() label = '';
   @Input() blocks: SectionBlock[] | null = null;
+  /** Enables factor cross-links in block bodies; `key` doubles as the
+   *  current-factor slug (key === slug for all 7 factors) so a section
+   *  never links to itself. Empty ticker → markdown render only. */
+  @Input() ticker = '';
 }

@@ -23,6 +23,7 @@ import { AnalysisChartsComponent } from './components/analysis-charts/analysis-c
 import { BlockScoreBarsComponent } from './components/block-score-bars/block-score-bars.component';
 import { TickerTapeComponent } from './components/ticker-tape/ticker-tape.component';
 import { RevealDirective } from './directives/reveal.directive';
+import { MdPipe } from './pipes/md.pipe';
 
 @NgModule({
   declarations: [
@@ -45,6 +46,7 @@ import { RevealDirective } from './directives/reveal.directive';
     BlockScoreBarsComponent,
     TickerTapeComponent,
     RevealDirective,
+    MdPipe,
   ],
   imports: [
     BrowserModule,

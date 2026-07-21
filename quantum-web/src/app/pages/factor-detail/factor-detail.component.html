@@ -34,7 +34,8 @@
 
     <!-- Structured analysis blocks -->
     <app-analysis-section *ngIf="blocks?.length"
-                          [key]="factor.key" label="Analysis" [blocks]="blocks"></app-analysis-section>
+                          [key]="factor.key" label="Analysis" [blocks]="blocks"
+                          [ticker]="stock.ticker"></app-analysis-section>
 
     <!-- Factor-specific quant graphics -->
     <div *ngIf="metricsPlacement" class="qp-section">
@@ -55,17 +56,20 @@
       <ng-container *ngIf="!chainLoading">
         <p *ngIf="!chain" class="qp-nodata-inline">No reasoning chain is stored for this factor yet.</p>
 
-        <pre *ngIf="chain?.raw" class="qp-chain-raw">{{ chain!.raw }}</pre>
+        <div *ngIf="chain?.raw" class="qp-chain-a qp-md"
+             [innerHTML]="chain!.raw | md : stock.ticker : factor.slug"></div>
 
         <div *ngFor="let step of chain?.qa; let i = index" class="qp-chain-step">
           <h3 class="qp-chain-q">{{ chainTopics ? chainTopics[i] : 'Step ' + (i + 1) }}</h3>
           <div *ngIf="showProvenance(step, i)" class="qp-chain-provenance qp-mono">{{ step.label }}</div>
-          <pre class="qp-chain-a">{{ step.text }}</pre>
+          <div class="qp-chain-a qp-md"
+               [innerHTML]="step.text | md : stock.ticker : factor.slug"></div>
         </div>
 
         <div *ngIf="chain?.conclusion" class="qp-chain-conclusion">
           <h3 class="qp-chain-q">Conclusion</h3>
-          <pre class="qp-chain-a">{{ chain!.conclusion }}</pre>
+          <div class="qp-chain-a qp-md"
+               [innerHTML]="chain!.conclusion | md : stock.ticker : factor.slug"></div>
         </div>
       </ng-container>
     </div>

@@ -83,6 +83,34 @@ export const CHAIN_TOPICS: Record<string, string[]> = {
   ],
 };
 
+/** Term patterns for Wikipedia-style inline cross-links in rendered analysis
+ *  text (MarkdownService). Keyed by the FACTORS slug (NOTE: the competition
+ *  factor's slug is 'competitor', financial health's is 'financial').
+ *  Rules enforced by the renderer: max ONE link per factor per rendered
+ *  document (first occurrence wins), never link a factor page to itself.
+ *  Patterns run against HTML-escaped text ('&' appears as '&amp;'). */
+export interface FactorLinkTerm {
+  slug: FactorDef['slug'] | string;
+  patterns: RegExp[];
+}
+
+export const FACTOR_LINK_TERMS: FactorLinkTerm[] = [
+  { slug: 'macro',      patterns: [/\b(macro(?:economic)?(?:\s+(?:environment|backdrop|conditions))?)\b/i] },
+  { slug: 'political',  patterns: [
+      /\b((?:political|policy|regulatory|geopolitical)\s+(?:landscape|environment|risk|factors|analysis))\b/i,
+      /\bpolitical\b/i,
+    ] },
+  { slug: 'financial',  patterns: [/\b(financial\s+(?:statements?|health|position)|balance\s+sheet|income\s+statement|cash\s+flow|valuation\s+multiples?)\b/i] },
+  { slug: 'competitor', patterns: [/\b(competiti(?:on|ve|tor)s?(?:\s+(?:position(?:ing)?|landscape|pressure))?)\b/i] },
+  { slug: 'management', patterns: [/\b(management(?:\s+(?:quality|team|execution))?|governance|leadership)\b/i] },
+  { slug: 'sentiment',  patterns: [/\b(sentiment|fear\s*(?:&(?:amp;)?|and)\s*greed|put[\/-]?call)\b/i] },
+  { slug: 'price',      patterns: [
+      /\b(technical(?:s|\s+analysis|\s+indicators)?|moving\s+averages?|monte\s+carlo|GARCH)\b/i,
+      // Uppercase finance acronyms stay case-sensitive so prose "var" etc. never links
+      /\b(RSI|MACD|VaR)\b/,
+    ] },
+];
+
 export function factorBySlug(slug: string | null | undefined): FactorDef | null {
   if (!slug) return null;
   return FACTORS.find(f => f.slug === slug.toLowerCase()) ?? null;

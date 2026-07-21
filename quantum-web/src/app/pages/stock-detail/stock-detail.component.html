@@ -79,7 +79,8 @@
                 <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
               </div>
             </div>
-            <p *ngIf="sum.narrative" class="qp-summary-narrative">{{ sum.narrative }}</p>
+            <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
+                 [innerHTML]="sum.narrative | md : stock.ticker"></div>
             <ul *ngIf="sum.bullets?.length" class="qp-summary-bullets">
               <li *ngFor="let b of sum.bullets">{{ b }}</li>
             </ul>

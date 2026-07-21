@@ -643,3 +643,118 @@ a { color: inherit; text-decoration: none; }
   padding: 160px 0;
   text-align: center;
 }
+
+/* ── Markdown-rendered analysis content (md pipe) ─────────
+   .qp-md wraps [innerHTML] output from MarkdownService. These rules are
+   GLOBAL on purpose: Angular's emulated ViewEncapsulation never stamps
+   _ngcontent attributes on innerHTML children, so component styles can't
+   reach them. */
+.qp-md {
+  font-family: var(--font-body);
+  line-height: 1.75;
+  max-width: 70ch;
+  white-space: normal;
+}
+.qp-md > :first-child { margin-top: 0; }
+.qp-md > :last-child { margin-bottom: 0; }
+.qp-md p { margin: 0 0 0.95em; }
+.qp-md h4,
+.qp-md h5 {
+  font-family: var(--font-display);
+  color: var(--claret);
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 1.7em 0 0.55em;
+}
+.qp-md h4 { font-size: 1.05rem; font-weight: 700; }
+.qp-md h5 { font-size: 0.95rem; font-weight: 600; }
+.qp-md ul, .qp-md ol { margin: 0.4em 0 0.95em; padding-left: 1.35em; }
+.qp-md li { margin: 0.3em 0; }
+.qp-md li::marker { color: var(--accent); }
+.qp-md strong { color: var(--oxford); font-weight: 600; }
+.qp-md em { font-style: italic; }
+.qp-md hr { border: 0; border-top: 1px solid var(--border); margin: 1.4em 0; }
+.qp-md code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+  padding: 0.1em 0.35em;
+}
+.qp-md pre { margin: 0 0 0.95em; }
+.qp-md pre code { display: block; padding: 12px 14px; overflow-x: auto; }
+.qp-md blockquote {
+  margin: 1em 0;
+  padding: 0.2em 0 0.2em 1em;
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-2);
+}
+
+/* FT-style tables: heavier top/bottom rules, thin inner rules, no zebra */
+.qp-table-scroll { overflow-x: auto; margin: 1.1em 0; }
+.qp-md table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  border-top: 2px solid var(--text);
+  border-bottom: 2px solid var(--text);
+  margin: 0;
+}
+.qp-md th {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-strong);
+}
+.qp-md td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.qp-md tbody tr:last-child td { border-bottom: none; }
+
+/* [GAP: ...] tags from the model → inline data-gap chips */
+.qp-gap-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--warn);
+  background: rgba(180, 83, 9, 0.09);
+  border: 1px solid rgba(180, 83, 9, 0.28);
+  border-radius: 4px;
+  padding: 0.1em 0.5em;
+  line-height: 1.5;
+  vertical-align: baseline;
+}
+
+/* Wikipedia-style factor cross-links — deliberately quiet */
+.qp-inline-link,
+.qp-inline-link:visited {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--teal);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+.qp-inline-link:hover {
+  text-decoration-style: solid;
+  text-decoration-color: var(--teal);
+}
+
+/* Reasoning-chain cards: keep the card frame (border/padding from
+   .qp-chain-a above) but drop the <pre> behavior — content is now rendered
+   markdown, and the card stays full article width. */
+.qp-chain-a.qp-md {
+  white-space: normal;
+  max-width: none;
+  font-family: var(--font-body);
+}
