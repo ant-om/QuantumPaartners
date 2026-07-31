@@ -21,6 +21,22 @@ export class StockDetailComponent implements OnInit {
   /** Per-factor conclusion sentiment for the section-header chips — computed once per load. */
   factorSentiments: Record<string, Sentiment | undefined> = {};
 
+  /** Factors with conclusions, split into two height-balanced columns.
+   *  Explicit columns instead of CSS multicol — Chrome clips/bleeds cards
+   *  with break-inside:avoid in a multicol flow. */
+  factorColumns: FactorDef[][] = [];
+
+  private buildFactorColumns(): void {
+    const present = this.factors.filter(f => this.takeaways(f.key).length);
+    const a: FactorDef[] = [], b: FactorDef[] = [];
+    let ha = 0, hb = 0;
+    for (const f of present) {
+      const h = this.takeaways(f.key).length + 2;   // rows + header ≈ card height
+      if (ha <= hb) { a.push(f); ha += h; } else { b.push(f); hb += h; }
+    }
+    this.factorColumns = b.length ? [a, b] : [a];
+  }
+
   readonly factors: FactorDef[] = FACTORS;
 
   /** R5 committee verdict — present only on new-structurer rows. Strictly
@@ -77,6 +93,7 @@ export class StockDetailComponent implements OnInit {
     this.analysis = await this.supabase.getAnalysis(this.stock.id);
     this.buildHorizonRows();
     for (const f of this.factors) this.factorSentiments[f.key] = factorDisplay(this.blocks(f.key)).sentiment;
+    this.buildFactorColumns();
     this.loading = false;
     this.seo.set({
       title: `${this.stock.ticker} Stock Analysis & AI Score — ${this.stock.name}`,

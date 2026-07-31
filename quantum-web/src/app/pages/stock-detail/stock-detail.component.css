@@ -67,18 +67,26 @@
 /* Factor conclusion cards — a two-column dashboard: each factor is one card
  *  (sentiment chip in the header, categories as meter rows) */
 .qp-conclusions-note { font-size: 0.88rem; color: var(--text-muted); margin: -6px 0 16px; }
-.qp-factor-dash { columns: 2; column-gap: 18px; }
-@media (max-width: 940px) { .qp-factor-dash { columns: 1; } }
+.qp-factor-dash {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 940px) { .qp-factor-dash { grid-template-columns: 1fr; } }
+.qp-dash-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .qp-takeaway-block {
-  break-inside: avoid;
   scroll-margin-top: 84px;
   background: var(--card);
   border: 1px solid var(--border);
+  border-top: 3px solid var(--border-strong);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-sm);
-  padding: 16px 18px 10px;
-  margin: 0 0 18px;
+  padding: 14px 18px 8px;
+  margin: 0;
 }
+.qp-takeaway-block.pos { border-top-color: var(--bull); }
+.qp-takeaway-block.neg { border-top-color: var(--bear); }
 .qp-takeaway-titlegroup { display: inline-flex; align-items: center; gap: 12px; }
 .qp-takeaway-title-link { color: var(--oxford); text-decoration: none; }
 .qp-takeaway-title-link:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -117,8 +125,9 @@
 }
 .qp-meter-fill { display: block; height: 100%; border-radius: 3px; }
 .qp-meter-num {
-  font-size: 0.72rem;
-  color: var(--text-2);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text);
   min-width: 20px;
   text-align: right;
 }

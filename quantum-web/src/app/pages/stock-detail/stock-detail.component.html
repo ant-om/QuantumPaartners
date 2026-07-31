@@ -112,32 +112,34 @@
           Follow a heading for the full question-by-question reasoning chain.
         </p>
         <div class="qp-factor-dash">
-        <ng-container *ngFor="let f of factors">
-          <div *ngIf="takeaways(f.key).length" appReveal [id]="'section-' + f.key" class="qp-takeaway-block">
-            <div class="qp-takeaway-head">
-              <div class="qp-takeaway-titlegroup">
-                <h3 class="qp-takeaway-title">
-                  <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }} →</a>
-                </h3>
-                <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
-              </div>
-            </div>
-            <ul class="qp-takeaway-list">
-              <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
-                <div class="qp-takeaway-item-head">
-                  <b>{{ t.heading }}</b>
-                  <div *ngIf="t.score !== null" class="qp-takeaway-meter"
-                       [title]="'Conclusion score: ' + t.score + '/100'">
-                    <span class="qp-meter"><span class="qp-meter-fill" [style.width.%]="t.score"
-                          [style.background]="scoreColor(t.score)"></span></span>
-                    <span class="qp-meter-num qp-mono">{{ t.score }}</span>
-                  </div>
+          <div class="qp-dash-col" *ngFor="let col of factorColumns">
+            <div *ngFor="let f of col" appReveal [id]="'section-' + f.key" class="qp-takeaway-block"
+                 [class.pos]="factorSentiments[f.key] === 'positive'"
+                 [class.neg]="factorSentiments[f.key] === 'negative'">
+              <div class="qp-takeaway-head">
+                <div class="qp-takeaway-titlegroup">
+                  <h3 class="qp-takeaway-title">
+                    <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }} →</a>
+                  </h3>
+                  <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
                 </div>
-                <div class="qp-takeaway-text">{{ t.takeaway }}</div>
-              </li>
-            </ul>
+              </div>
+              <ul class="qp-takeaway-list">
+                <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
+                  <div class="qp-takeaway-item-head">
+                    <b>{{ t.heading }}</b>
+                    <div *ngIf="t.score !== null" class="qp-takeaway-meter"
+                         [title]="'Conclusion score: ' + t.score + '/100'">
+                      <span class="qp-meter"><span class="qp-meter-fill" [style.width.%]="t.score"
+                            [style.background]="scoreColor(t.score)"></span></span>
+                      <span class="qp-meter-num qp-mono">{{ t.score }}</span>
+                    </div>
+                  </div>
+                  <div class="qp-takeaway-text">{{ t.takeaway }}</div>
+                </li>
+              </ul>
+            </div>
           </div>
-        </ng-container>
         </div>
       </div>
 
