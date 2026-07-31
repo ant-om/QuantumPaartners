@@ -108,21 +108,6 @@
         </div>
       </div>
 
-      <!-- The seven factors: name + sentiment only — a table of contents into
-           the conclusion sections below -->
-      <div *ngIf="analysis" appReveal id="section-factors" class="qp-section">
-        <h2 class="qp-section-heading">The seven factors</h2>
-        <div class="qp-factor-toc">
-          <ng-container *ngFor="let f of factors">
-            <a *ngIf="takeaways(f.key).length" class="qp-factor-toc-item"
-               [href]="'#section-' + f.key" (click)="scrollToFactor($event, f.key)">
-              <span class="qp-factor-toc-label">{{ f.label }}</span>
-              <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
-            </a>
-          </ng-container>
-        </div>
-      </div>
-
       <!-- Score evolution — only once >= 2 runs exist -->
       <div *ngIf="analysis && history.length >= 2" appReveal id="section-charts" class="qp-section">
         <h2 class="qp-section-heading">Score evolution</h2>
@@ -130,10 +115,10 @@
                              [history]="history" [timelineOnly]="true"></app-analysis-charts>
       </div>
 
-      <!-- Factor conclusions: each module's conclusion chain split into its
-           categories; the heading links to the full reasoning chain -->
+      <!-- The seven factors = the committee conclusions, one section per
+           factor: sentiment in the header, categories as meter rows -->
       <div *ngIf="analysis" class="qp-section">
-        <h2 class="qp-section-heading">Factor conclusions</h2>
+        <h2 class="qp-section-heading">The seven factors</h2>
         <p class="qp-conclusions-note">
           Each factor's committee conclusion, split into its categories.
           Follow a heading for the full question-by-question reasoning chain.
@@ -141,9 +126,12 @@
         <ng-container *ngFor="let f of factors">
           <div *ngIf="takeaways(f.key).length" appReveal [id]="'section-' + f.key" class="qp-takeaway-block">
             <div class="qp-takeaway-head">
-              <h3 class="qp-takeaway-title">
-                <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }}</a>
-              </h3>
+              <div class="qp-takeaway-titlegroup">
+                <h3 class="qp-takeaway-title">
+                  <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }}</a>
+                </h3>
+                <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
+              </div>
               <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-link">Full analysis →</a>
             </div>
             <ul class="qp-takeaway-list">

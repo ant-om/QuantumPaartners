@@ -58,7 +58,6 @@ export class StockDetailComponent implements OnInit {
   get tocSections() {
     const toc = [{ key: 'summary', label: 'Overview' }];
     if (this.analysis) {
-      toc.push({ key: 'factors', label: 'Factors' });
       if (this.history.length >= 2) toc.push({ key: 'charts', label: 'Score evolution' });
       toc.push(...this.factors.map(f => ({ key: f.key, label: f.short })));
     }
@@ -118,12 +117,6 @@ export class StockDetailComponent implements OnInit {
     if (s >= 66) return 'var(--bull)';
     if (s >= 33) return 'var(--warn)';
     return 'var(--bear)';
-  }
-
-  /** Factor TOC click → smooth-scroll to that factor's conclusion section. */
-  scrollToFactor(ev: Event, key: string) {
-    ev.preventDefault();
-    document.getElementById('section-' + key)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   goHome() {
