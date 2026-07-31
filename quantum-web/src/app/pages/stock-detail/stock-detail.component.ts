@@ -24,26 +24,9 @@ export class StockDetailComponent implements OnInit {
   /** Factors with conclusions, split into two height-balanced columns.
    *  Explicit columns instead of CSS multicol — Chrome clips/bleeds cards
    *  with break-inside:avoid in a multicol flow. */
-  factorColumns: FactorDef[][] = [];
+  /** Factors that have conclusions — the tab strip. */
   presentFactors: FactorDef[] = [];
-
-  /** Preview: /stock/:ticker?view=tabs renders the factors as a tabbed panel
-   *  instead of the two-column dashboard. */
-  tabsView = false;
   activeFactorKey = '';
-
-  private buildFactorColumns(): void {
-    const present = this.factors.filter(f => this.takeaways(f.key).length);
-    this.presentFactors = present;
-    this.activeFactorKey = present[0]?.key ?? '';
-    const a: FactorDef[] = [], b: FactorDef[] = [];
-    let ha = 0, hb = 0;
-    for (const f of present) {
-      const h = this.takeaways(f.key).length + 2;   // rows + header ≈ card height
-      if (ha <= hb) { a.push(f); ha += h; } else { b.push(f); hb += h; }
-    }
-    this.factorColumns = b.length ? [a, b] : [a];
-  }
 
   readonly factors: FactorDef[] = FACTORS;
 
@@ -77,7 +60,7 @@ export class StockDetailComponent implements OnInit {
     const toc = [{ key: 'summary', label: 'Overview' }];
     if (this.analysis) {
       if (this.history.length >= 2) toc.push({ key: 'charts', label: 'Score evolution' });
-      toc.push(...this.factors.map(f => ({ key: f.key, label: f.short })));
+      toc.push({ key: 'factors', label: 'The seven factors' });
     }
     return toc;
   }
@@ -90,7 +73,6 @@ export class StockDetailComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    this.tabsView = this.route.snapshot.queryParamMap.get('view') === 'tabs';
     const ticker = this.route.snapshot.paramMap.get('ticker') ?? '';
     this.stock = await this.supabase.getStockByTicker(ticker);
     if (!this.stock) {
@@ -102,7 +84,8 @@ export class StockDetailComponent implements OnInit {
     this.analysis = await this.supabase.getAnalysis(this.stock.id);
     this.buildHorizonRows();
     for (const f of this.factors) this.factorSentiments[f.key] = factorDisplay(this.blocks(f.key)).sentiment;
-    this.buildFactorColumns();
+    this.presentFactors = this.factors.filter(f => this.takeaways(f.key).length);
+    this.activeFactorKey = this.presentFactors[0]?.key ?? '';
     this.loading = false;
     this.seo.set({
       title: `${this.stock.ticker} Stock Analysis & AI Score — ${this.stock.name}`,
@@ -131,11 +114,14 @@ export class StockDetailComponent implements OnInit {
       .map(b => ({ heading: b.heading, takeaway: b.takeaway, score: b.score ?? null }));
   }
 
-  /** Same score banding used across the site (block-score-bars, factor pages). */
-  scoreBand(s: number): 'high' | 'mid' | 'low' {
-    if (s >= 66) return 'high';
-    if (s >= 33) return 'mid';
-    return 'low';
+  /** Conclusion scores are 0-100 bullishness — surface them as stance words
+   *  (the Horizons vocabulary), not bare numbers. Exact score stays on hover. */
+  scoreStance(s: number): { label: string; band: string } {
+    if (s >= 70) return { label: 'Bullish', band: 'bull' };
+    if (s >= 55) return { label: 'Leans bullish', band: 'lean-bull' };
+    if (s >= 45) return { label: 'Neutral', band: 'neutral' };
+    if (s >= 30) return { label: 'Leans bearish', band: 'lean-bear' };
+    return { label: 'Bearish', band: 'bear' };
   }
 
   dotColor(key: string): string {
