@@ -134,19 +134,14 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
-/* Dashboard split: verdict + narrative left, horizons + risks rail right */
-.qp-summary-grid {
+/* Horizons | Key risks — two columns under the narrative */
+.qp-summary-cols {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 26px;
-}
-.qp-summary-side {
-  width: 330px;
-  border-left: 1px solid var(--border);
-  padding-left: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 36px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 .qp-side-kicker {
   font-family: var(--font-mono);
@@ -158,8 +153,7 @@
   margin-bottom: 4px;
 }
 @media (max-width: 900px) {
-  .qp-summary-grid { grid-template-columns: 1fr; }
-  .qp-summary-side { width: auto; border-left: 0; padding-left: 0; }
+  .qp-summary-cols { grid-template-columns: 1fr; }
 }
 .qp-summary::before {
   content: "";
