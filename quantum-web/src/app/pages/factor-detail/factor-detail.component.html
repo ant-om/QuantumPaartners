@@ -37,6 +37,12 @@
                           [key]="factor.key" label="Analysis" [blocks]="blocks"
                           [ticker]="stock.ticker"></app-analysis-section>
 
+    <!-- Price & VIX line charts — moved here from the stock overview page -->
+    <div *ngIf="metricsPlacement === 'price'" class="qp-section">
+      <h2 class="qp-section-heading">Price &amp; volatility</h2>
+      <app-metric-charts [metrics]="analysis!.metrics" placement="stock"></app-metric-charts>
+    </div>
+
     <!-- Factor-specific quant graphics -->
     <div *ngIf="metricsPlacement" class="qp-section">
       <h2 class="qp-section-heading">{{ metricsPlacement === 'price' ? 'Quant dashboard' : 'Market exposure' }}</h2>

@@ -59,6 +59,41 @@ export interface AnalysisSummary {
   verdict?: AnalysisVerdict;
 }
 
+/** Display-side repair of structurer artifacts in `summary`: the DS R5
+ *  structurer hard-cuts `headline` at 200 chars (mid-word) and can leak
+ *  unpaired markdown `**` tokens from its Section-9 parse. When the headline
+ *  is a truncated prefix of the narrative, promote the narrative's first full
+ *  sentence to headline and drop it from the narrative so the page doesn't
+ *  open with the same sentence twice. Legacy rows pass through untouched. */
+export function cleanAnalysisSummary(summary: AnalysisSummary | null): AnalysisSummary | null {
+  if (!summary) return summary;
+
+  const strip = (t: string | undefined | null): string => (t ?? '')
+    .replace(/^\s*\*{2,}\s*$/gm, '')   // paragraphs that are only asterisks
+    .replace(/^\s*\*{2,}\s*/, '')      // unpaired leading **
+    .replace(/\s*\*{2,}\s*$/, '')      // unpaired trailing **
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  let headline = strip(summary.headline);
+  let narrative = strip(summary.narrative);
+
+  const truncated = headline.length >= 120 && !/[.!?…"”')\]]$/.test(headline);
+  if (truncated) {
+    // Sentence end = lowercase/digit/%/quote before .!? then whitespace —
+    // skips abbreviations like "U.S." without a dictionary.
+    const sentence = narrative.toLowerCase().startsWith(headline.slice(0, 80).toLowerCase())
+      ? /^[\s\S]{40,420}?[a-z0-9%)"][.!?](?=\s|$)/.exec(narrative)
+      : null;
+    headline = sentence ? sentence[0].trim() : headline.replace(/\s+\S*$/, '') + '…';
+  }
+  if (headline && narrative.startsWith(headline)) {
+    narrative = narrative.slice(headline.length).replace(/^[\s.\-–—]+/, '').trim();
+  }
+
+  return { ...summary, headline, narrative };
+}
+
 // Shape of the live Railway quant API (GET /analyze/<ticker>), stored as-is in `metrics`.
 export interface PricePoint { date: string; close: number; }
 export interface VixPoint { date: string; vix: number; }
@@ -248,7 +283,9 @@ export class SupabaseService {
         .eq('stock_id', stockId)
         .single();
       if (error) return null;
-      return data as StockAnalysis;
+      const row = data as StockAnalysis;
+      row.summary = cleanAnalysisSummary(row.summary);
+      return row;
     });
   }
 

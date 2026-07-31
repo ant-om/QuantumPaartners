@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { LogoService } from '../../services/logo.service';
-import { FACTORS, FactorDef } from '../../models/factors';
+import { FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
 @Component({
   selector: 'app-stock-detail',
@@ -18,6 +18,10 @@ export class StockDetailComponent implements OnInit {
   loading = true;
   notFound = false;
   logoFailed = false;
+  aboutOpen = false;
+
+  /** Per-factor conclusion sentiment for the TOC chips — computed once per load. */
+  factorSentiments: Record<string, Sentiment | undefined> = {};
 
   get logoUrl(): string {
     return this.stock ? this.logos.resolve(this.stock) : '';
@@ -54,8 +58,8 @@ export class StockDetailComponent implements OnInit {
   get tocSections() {
     const toc = [{ key: 'summary', label: 'Overview' }];
     if (this.analysis) {
-      toc.push({ key: 'factors', label: 'Factor scores' });
-      if (this.analysis.metrics) toc.push({ key: 'charts', label: 'Charts' });
+      toc.push({ key: 'factors', label: 'Factors' });
+      if (this.history.length >= 2) toc.push({ key: 'charts', label: 'Score evolution' });
       toc.push(...this.factors.map(f => ({ key: f.key, label: f.short })));
     }
     return toc;
@@ -80,6 +84,7 @@ export class StockDetailComponent implements OnInit {
     }
     this.analysis = await this.supabase.getAnalysis(this.stock.id);
     this.buildHorizonRows();
+    for (const f of this.factors) this.factorSentiments[f.key] = factorDisplay(this.blocks(f.key)).sentiment;
     this.loading = false;
     this.seo.set({
       title: `${this.stock.ticker} Stock Analysis & AI Score — ${this.stock.name}`,
@@ -102,10 +107,16 @@ export class StockDetailComponent implements OnInit {
     return (this.analysis as any)?.[key] ?? null;
   }
 
-  takeaways(key: string): { heading: string; takeaway: string }[] {
+  takeaways(key: string): { heading: string; takeaway: string; score: number | null }[] {
     return (this.blocks(key) ?? [])
       .filter(b => b.takeaway)
-      .map(b => ({ heading: b.heading, takeaway: b.takeaway }));
+      .map(b => ({ heading: b.heading, takeaway: b.takeaway, score: b.score ?? null }));
+  }
+
+  /** Factor TOC click → smooth-scroll to that factor's conclusion section. */
+  scrollToFactor(ev: Event, key: string) {
+    ev.preventDefault();
+    document.getElementById('section-' + key)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   goHome() {

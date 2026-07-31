@@ -15,7 +15,7 @@ interface TimelineSeries { key: string; label: string; points: string; color: st
   template: `
     <div class="ac" *ngIf="analysis">
       <!-- 7-factor score bars -->
-      <div class="qp-chart" *ngIf="factorBars.length">
+      <div class="qp-chart" *ngIf="!timelineOnly && factorBars.length">
         <div class="qp-chart-head"><span class="qp-chart-title">Factor scores</span></div>
         <div class="ac-bars">
           <a class="ac-bar-row" *ngFor="let b of factorBars"
@@ -31,7 +31,7 @@ interface TimelineSeries { key: string; label: string; points: string; color: st
       </div>
 
       <!-- Sentiment mix -->
-      <div class="qp-chart" *ngIf="mixRows.length">
+      <div class="qp-chart" *ngIf="!timelineOnly && mixRows.length">
         <div class="qp-chart-head">
           <span class="qp-chart-title">Sentiment mix — analysis blocks per factor</span>
           <span class="qp-legend">
@@ -92,6 +92,9 @@ export class AnalysisChartsComponent implements OnChanges {
   @Input() analysis: StockAnalysis | null = null;
   @Input() ticker = '';
   @Input() history: ScoreHistoryPoint[] = [];
+  /** Stock page shows only the score-evolution timeline — the per-factor bar
+   *  charts duplicate what the factor TOC + conclusion sections already say. */
+  @Input() timelineOnly = false;
 
   readonly W = 680;
   readonly H = 190;

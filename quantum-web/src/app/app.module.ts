@@ -18,7 +18,6 @@ import { AnalysisSectionComponent } from './components/analysis-section/analysis
 import { MetricChartsComponent } from './components/metric-charts/metric-charts.component';
 import { NavComponent } from './components/nav/nav.component';
 import { StockCardComponent } from './components/stock-card/stock-card.component';
-import { FactorCardComponent } from './components/factor-card/factor-card.component';
 import { AnalysisChartsComponent } from './components/analysis-charts/analysis-charts.component';
 import { BlockScoreBarsComponent } from './components/block-score-bars/block-score-bars.component';
 import { TickerTapeComponent } from './components/ticker-tape/ticker-tape.component';
@@ -41,7 +40,6 @@ import { MdPipe } from './pipes/md.pipe';
     MetricChartsComponent,
     NavComponent,
     StockCardComponent,
-    FactorCardComponent,
     AnalysisChartsComponent,
     BlockScoreBarsComponent,
     TickerTapeComponent,

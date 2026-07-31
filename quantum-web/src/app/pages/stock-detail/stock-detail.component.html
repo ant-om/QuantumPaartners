@@ -52,8 +52,14 @@
         </div>
       </div>
 
-      <!-- Company intro -->
-      <p *ngIf="stock.description" class="qp-intro">{{ stock.description }}</p>
+      <!-- Company profile — compact disclosure, expands on hover or click -->
+      <div *ngIf="stock.description" class="qp-about-co" [class.open]="aboutOpen">
+        <button type="button" class="qp-about-co-btn"
+                (click)="aboutOpen = !aboutOpen" [attr.aria-expanded]="aboutOpen">
+          About {{ stock.name }} <span class="qp-about-co-icon">ⓘ</span>
+        </button>
+        <div class="qp-about-co-panel">{{ stock.description }}</div>
+      </div>
 
       <!-- Score anchor: verdict panel (new R5 rows) or the numeric score gauge (legacy) -->
       <div *ngIf="analysis?.summary as sum" appReveal id="section-summary" class="qp-summary">
@@ -102,36 +108,49 @@
         </div>
       </div>
 
-      <!-- 7 factor cards (scores read directly from the analysis) -->
+      <!-- The seven factors: name + sentiment only — a table of contents into
+           the conclusion sections below -->
       <div *ngIf="analysis" appReveal id="section-factors" class="qp-section">
         <h2 class="qp-section-heading">The seven factors</h2>
-        <div class="qp-factor-grid">
-          <app-factor-card *ngFor="let f of factors"
-                           [factor]="f" [ticker]="stock.ticker"
-                           [blocks]="blocks(f.key)"></app-factor-card>
+        <div class="qp-factor-toc">
+          <ng-container *ngFor="let f of factors">
+            <a *ngIf="takeaways(f.key).length" class="qp-factor-toc-item"
+               [href]="'#section-' + f.key" (click)="scrollToFactor($event, f.key)">
+              <span class="qp-factor-toc-label">{{ f.label }}</span>
+              <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
+            </a>
+          </ng-container>
         </div>
       </div>
 
-      <!-- Charts dashboard: factor bars + sentiment mix + score history + price/VIX -->
-      <div *ngIf="analysis" appReveal id="section-charts" class="qp-section">
-        <h2 class="qp-section-heading">Charts</h2>
+      <!-- Score evolution — only once >= 2 runs exist -->
+      <div *ngIf="analysis && history.length >= 2" appReveal id="section-charts" class="qp-section">
+        <h2 class="qp-section-heading">Score evolution</h2>
         <app-analysis-charts [analysis]="analysis" [ticker]="stock.ticker"
-                             [history]="history"></app-analysis-charts>
-        <app-metric-charts *ngIf="analysis.metrics"
-                           [metrics]="analysis.metrics" placement="stock"></app-metric-charts>
+                             [history]="history" [timelineOnly]="true"></app-analysis-charts>
       </div>
 
-      <!-- Condensed takeaways per factor (keeps on-page SEO text) -->
+      <!-- Factor conclusions: each module's conclusion chain split into its
+           categories; the heading links to the full reasoning chain -->
       <div *ngIf="analysis" class="qp-section">
-        <h2 class="qp-section-heading">Key takeaways</h2>
+        <h2 class="qp-section-heading">Factor conclusions</h2>
+        <p class="qp-conclusions-note">
+          Each factor's committee conclusion, split into its categories.
+          Follow a heading for the full question-by-question reasoning chain.
+        </p>
         <ng-container *ngFor="let f of factors">
           <div *ngIf="takeaways(f.key).length" appReveal [id]="'section-' + f.key" class="qp-takeaway-block">
             <div class="qp-takeaway-head">
-              <h3 class="qp-takeaway-title">{{ f.label }}</h3>
+              <h3 class="qp-takeaway-title">
+                <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }}</a>
+              </h3>
               <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-link">Full analysis →</a>
             </div>
             <ul class="qp-takeaway-list">
-              <li *ngFor="let t of takeaways(f.key)"><b>{{ t.heading }}.</b> {{ t.takeaway }}</li>
+              <li *ngFor="let t of takeaways(f.key)">
+                <b>{{ t.heading }}.</b> {{ t.takeaway }}
+                <span *ngIf="t.score !== null" class="qp-takeaway-score qp-mono">{{ t.score }}/100</span>
+              </li>
             </ul>
           </div>
         </ng-container>
