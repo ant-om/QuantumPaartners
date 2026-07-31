@@ -92,17 +92,32 @@
 .qp-takeaway-title-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .qp-takeaway-list { list-style: none; margin: 0; padding: 0; }
 
-/* Category row: heading + right-aligned meter on one line (all meters line
- *  up flush right), takeaway text below full width */
-.qp-takeaway-item { padding: 7px 0; border-bottom: 1px dashed var(--border); }
-.qp-takeaway-item:last-child { border-bottom: 0; padding-bottom: 2px; }
-.qp-takeaway-item-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* Score-first category row: big banded score figure + mini meter in a fixed
+ *  left column, heading + takeaway to the right — the number column is the
+ *  thing your eye scans */
+.qp-takeaway-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
   gap: 14px;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border);
 }
-.qp-takeaway-item-head b {
+.qp-takeaway-item:last-child { border-bottom: 0; padding-bottom: 4px; }
+.qp-score-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  padding-top: 1px;
+}
+.qp-score-fig {
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-muted);
+}
+.qp-score-cell .qp-meter { width: 100%; flex: none; height: 4px; }
+.qp-takeaway-body b {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
@@ -114,7 +129,6 @@
   color: var(--text-2);
   margin-top: 2px;
 }
-.qp-takeaway-meter { flex: 0 0 106px; display: flex; align-items: center; gap: 8px; }
 .qp-meter {
   flex: 1;
   height: 6px;
@@ -124,13 +138,6 @@
   overflow: hidden;
 }
 .qp-meter-fill { display: block; height: 100%; border-radius: 3px; }
-.qp-meter-num {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--text);
-  min-width: 20px;
-  text-align: right;
-}
 
 /* Overview / summary card — the hero of the detail page */
 .qp-summary {

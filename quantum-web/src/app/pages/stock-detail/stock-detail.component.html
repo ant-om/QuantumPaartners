@@ -126,16 +126,18 @@
               </div>
               <ul class="qp-takeaway-list">
                 <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
-                  <div class="qp-takeaway-item-head">
-                    <b>{{ t.heading }}</b>
-                    <div *ngIf="t.score !== null" class="qp-takeaway-meter"
-                         [title]="'Conclusion score: ' + t.score + '/100'">
-                      <span class="qp-meter"><span class="qp-meter-fill" [style.width.%]="t.score"
-                            [style.background]="scoreColor(t.score)"></span></span>
-                      <span class="qp-meter-num qp-mono">{{ t.score }}</span>
-                    </div>
+                  <div class="qp-score-cell" [title]="t.score !== null ? 'Conclusion score: ' + t.score + '/100' : ''">
+                    <span class="qp-score-fig qp-mono"
+                          [style.color]="t.score !== null ? scoreColor(t.score) : null">{{ t.score !== null ? t.score : '—' }}</span>
+                    <span *ngIf="t.score !== null" class="qp-meter">
+                      <span class="qp-meter-fill" [style.width.%]="t.score"
+                            [style.background]="scoreColor(t.score)"></span>
+                    </span>
                   </div>
-                  <div class="qp-takeaway-text">{{ t.takeaway }}</div>
+                  <div class="qp-takeaway-body">
+                    <b>{{ t.heading }}</b>
+                    <div class="qp-takeaway-text">{{ t.takeaway }}</div>
+                  </div>
                 </li>
               </ul>
             </div>
