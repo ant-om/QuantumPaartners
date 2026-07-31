@@ -61,50 +61,62 @@
         <div class="qp-about-co-panel">{{ stock.description }}</div>
       </div>
 
-      <!-- Score anchor: verdict panel (new R5 rows) or the numeric score gauge (legacy) -->
+      <!-- Overview: verdict + narrative on the left, horizons + risks rail on
+           the right — one dashboard card instead of a stacked column -->
       <div *ngIf="analysis?.summary as sum" appReveal id="section-summary" class="qp-summary">
-        <div class="qp-score-anchor">
-          <div class="qp-score-anchor-gauge" *ngIf="!verdict && sum.score !== undefined && sum.score !== null">
-            <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
-          </div>
-          <div *ngIf="verdict as v" class="qp-verdict"
-               [class.buy]="v.recommendation === 'BUY'"
-               [class.hold]="v.recommendation === 'HOLD'"
-               [class.sell]="v.recommendation === 'SELL'">
-            <div class="qp-verdict-kicker">Committee verdict</div>
-            <div class="qp-verdict-rec">{{ v.recommendation }}</div>
-            <span class="qp-verdict-conviction"
-                  [class.high]="v.conviction === 'HIGH'"
-                  [class.medium]="v.conviction === 'MEDIUM'"
-                  [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
-          </div>
-          <div>
-            <div class="qp-summary-head">
-              <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
-              <div class="qp-summary-meta">
-                <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
+        <div class="qp-summary-grid">
+          <div class="qp-summary-main">
+            <div class="qp-score-anchor">
+              <div class="qp-score-anchor-gauge" *ngIf="!verdict && sum.score !== undefined && sum.score !== null">
+                <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
+              </div>
+              <div *ngIf="verdict as v" class="qp-verdict"
+                   [class.buy]="v.recommendation === 'BUY'"
+                   [class.hold]="v.recommendation === 'HOLD'"
+                   [class.sell]="v.recommendation === 'SELL'">
+                <div class="qp-verdict-kicker">Committee verdict</div>
+                <div class="qp-verdict-rec">{{ v.recommendation }}</div>
+                <span class="qp-verdict-conviction"
+                      [class.high]="v.conviction === 'HIGH'"
+                      [class.medium]="v.conviction === 'MEDIUM'"
+                      [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
+              </div>
+              <div>
+                <div class="qp-summary-head">
+                  <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
+                  <div class="qp-summary-meta">
+                    <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
+                  </div>
+                </div>
+                <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
+                     [innerHTML]="sum.narrative | md : stock.ticker"></div>
               </div>
             </div>
-            <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
-                 [innerHTML]="sum.narrative | md : stock.ticker"></div>
-            <ul *ngIf="sum.bullets?.length" class="qp-summary-bullets">
-              <li *ngFor="let b of sum.bullets">{{ b }}</li>
-            </ul>
           </div>
-        </div>
 
-        <!-- Horizon strip: part of the verdict panel, full width below the anchor -->
-        <div *ngIf="horizonRows.length" class="qp-horizons">
-          <div *ngFor="let h of horizonRows" class="qp-horizon-row">
-            <div class="qp-horizon-label qp-mono">
-              {{ h.label }} <span class="qp-horizon-range">{{ h.range }}</span>
+          <aside *ngIf="horizonRows.length || sum.bullets?.length" class="qp-summary-side">
+            <div *ngIf="horizonRows.length">
+              <div class="qp-side-kicker">Horizons</div>
+              <div class="qp-horizons">
+                <div *ngFor="let h of horizonRows" class="qp-horizon-row">
+                  <div class="qp-horizon-label qp-mono">
+                    {{ h.label }} <span class="qp-horizon-range">{{ h.range }}</span>
+                  </div>
+                  <div class="qp-horizon-stance qp-mono"
+                       [class.bullish]="h.stance === 'BULLISH'"
+                       [class.bearish]="h.stance === 'BEARISH'"
+                       [class.neutral]="h.stance === 'NEUTRAL'">{{ h.stance }}</div>
+                  <div class="qp-horizon-rationale">{{ h.rationale }}</div>
+                </div>
+              </div>
             </div>
-            <div class="qp-horizon-stance qp-mono"
-                 [class.bullish]="h.stance === 'BULLISH'"
-                 [class.bearish]="h.stance === 'BEARISH'"
-                 [class.neutral]="h.stance === 'NEUTRAL'">{{ h.stance }}</div>
-            <div class="qp-horizon-rationale">{{ h.rationale }}</div>
-          </div>
+            <div *ngIf="sum.bullets?.length">
+              <div class="qp-side-kicker">{{ verdict ? 'Key risks' : 'Highlights' }}</div>
+              <ul class="qp-summary-bullets">
+                <li *ngFor="let b of sum.bullets">{{ b }}</li>
+              </ul>
+            </div>
+          </aside>
         </div>
       </div>
 
@@ -123,6 +135,7 @@
           Each factor's committee conclusion, split into its categories.
           Follow a heading for the full question-by-question reasoning chain.
         </p>
+        <div class="qp-factor-dash">
         <ng-container *ngFor="let f of factors">
           <div *ngIf="takeaways(f.key).length" appReveal [id]="'section-' + f.key" class="qp-takeaway-block">
             <div class="qp-takeaway-head">
@@ -147,6 +160,7 @@
             </ul>
           </div>
         </ng-container>
+        </div>
       </div>
 
       <div *ngIf="!analysis" class="qp-loading" style="padding:60px 0">

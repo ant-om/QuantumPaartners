@@ -270,9 +270,9 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Detail page shell ──────────────────────────────────── */
 .qp-detail {
-  max-width: 1140px;
+  max-width: 1240px;
   margin: 0 auto;
-  padding: 128px 24px 100px;
+  padding: 104px 24px 90px;
 }
 
 .qp-back {
@@ -292,8 +292,8 @@ a { color: inherit; text-decoration: none; }
 /* ── Stock title block ──────────────────────────────────── */
 .qp-stock-titleblock {
   border-bottom: 1px solid var(--border);
-  padding-bottom: 28px;
-  margin-bottom: 32px;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .qp-stock-ticker {
