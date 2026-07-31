@@ -111,37 +111,59 @@
           Each factor's committee conclusion, split into its categories.
           Follow a heading for the full question-by-question reasoning chain.
         </p>
-        <div class="qp-factor-dash">
-          <div class="qp-dash-col" *ngFor="let col of factorColumns">
-            <div *ngFor="let f of col" appReveal [id]="'section-' + f.key" class="qp-takeaway-block"
-                 [class.pos]="factorSentiments[f.key] === 'positive'"
-                 [class.neg]="factorSentiments[f.key] === 'negative'">
-              <div class="qp-takeaway-head">
-                <div class="qp-takeaway-titlegroup">
-                  <h3 class="qp-takeaway-title">
-                    <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }} →</a>
-                  </h3>
-                  <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
-                </div>
+        <!-- One factor card, reused by the dashboard grid and the tabs view -->
+        <ng-template #factorCard let-f let-mode="mode">
+          <div appReveal [id]="'section-' + f.key" class="qp-takeaway-block"
+               [class.qp-tab-panel]="mode === 'tab'"
+               [class.pos]="factorSentiments[f.key] === 'positive'"
+               [class.neg]="factorSentiments[f.key] === 'negative'">
+            <div class="qp-takeaway-head">
+              <div class="qp-takeaway-titlegroup">
+                <h3 class="qp-takeaway-title">
+                  <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }} →</a>
+                </h3>
+                <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
               </div>
-              <ul class="qp-takeaway-list">
-                <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
-                  <div class="qp-score-cell" [title]="t.score !== null ? 'Conclusion score: ' + t.score + '/100' : ''">
-                    <span class="qp-score-fig qp-mono"
-                          [style.color]="t.score !== null ? scoreColor(t.score) : null">{{ t.score !== null ? t.score : '—' }}</span>
-                    <span *ngIf="t.score !== null" class="qp-meter">
-                      <span class="qp-meter-fill" [style.width.%]="t.score"
-                            [style.background]="scoreColor(t.score)"></span>
-                    </span>
-                  </div>
-                  <div class="qp-takeaway-body">
-                    <b>{{ t.heading }}</b>
-                    <div class="qp-takeaway-text">{{ t.takeaway }}</div>
-                  </div>
-                </li>
-              </ul>
             </div>
+            <ul class="qp-takeaway-list">
+              <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
+                <span *ngIf="t.score !== null" class="qp-score-pill qp-mono"
+                      [class.high]="scoreBand(t.score) === 'high'"
+                      [class.mid]="scoreBand(t.score) === 'mid'"
+                      [class.low]="scoreBand(t.score) === 'low'"
+                      [title]="'Conclusion score: ' + t.score + '/100'">{{ t.score }}</span>
+                <span *ngIf="t.score === null" class="qp-score-pill qp-mono none">—</span>
+                <div class="qp-takeaway-body">
+                  <b>{{ t.heading }}</b>
+                  <div class="qp-takeaway-text">{{ t.takeaway }}</div>
+                </div>
+              </li>
+            </ul>
           </div>
+        </ng-template>
+
+        <!-- Default: two balanced columns -->
+        <div *ngIf="!tabsView" class="qp-factor-dash">
+          <div class="qp-dash-col" *ngFor="let col of factorColumns">
+            <ng-container *ngFor="let f of col">
+              <ng-container *ngTemplateOutlet="factorCard; context: { $implicit: f }"></ng-container>
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Preview (?view=tabs): one factor at a time behind a tab strip -->
+        <div *ngIf="tabsView">
+          <div class="qp-tabs">
+            <button *ngFor="let f of presentFactors" type="button" class="qp-tab"
+                    [class.active]="f.key === activeFactorKey" (click)="setTab(f.key)">
+              <span class="qp-tab-dot" [style.background]="dotColor(f.key)"></span>{{ f.short }}
+            </button>
+          </div>
+          <ng-container *ngFor="let f of presentFactors">
+            <ng-container *ngIf="f.key === activeFactorKey">
+              <ng-container *ngTemplateOutlet="factorCard; context: { $implicit: f, mode: 'tab' }"></ng-container>
+            </ng-container>
+          </ng-container>
         </div>
       </div>
 

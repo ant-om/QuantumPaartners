@@ -92,31 +92,32 @@
 .qp-takeaway-title-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .qp-takeaway-list { list-style: none; margin: 0; padding: 0; }
 
-/* Score-first category row: big banded score figure + mini meter in a fixed
- *  left column, heading + takeaway to the right — the number column is the
- *  thing your eye scans */
+/* Score-first category row: one tinted score pill in a fixed left column,
+ *  heading + takeaway to the right — the pill column is the scan path */
 .qp-takeaway-item {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 14px;
   padding: 8px 0;
   border-bottom: 1px dashed var(--border);
 }
 .qp-takeaway-item:last-child { border-bottom: 0; padding-bottom: 4px; }
-.qp-score-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 3px;
-  padding-top: 1px;
-}
-.qp-score-fig {
-  font-size: 1.02rem;
+.qp-score-pill {
+  align-self: start;
+  justify-self: stretch;
+  text-align: center;
+  padding: 4px 0;
+  margin-top: 1px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  font-size: 0.78rem;
   font-weight: 700;
   line-height: 1;
-  color: var(--text-muted);
 }
-.qp-score-cell .qp-meter { width: 100%; flex: none; height: 4px; }
+.qp-score-pill.high { color: var(--bull); background: rgba(20, 123, 88, 0.09);  border-color: rgba(20, 123, 88, 0.3); }
+.qp-score-pill.mid  { color: var(--warn); background: rgba(180, 83, 9, 0.08);   border-color: rgba(180, 83, 9, 0.3); }
+.qp-score-pill.low  { color: var(--bear); background: rgba(168, 30, 30, 0.07);  border-color: rgba(168, 30, 30, 0.28); }
+.qp-score-pill.none { color: var(--text-muted); background: var(--bg-wash); }
 .qp-takeaway-body b {
   font-size: 0.85rem;
   font-weight: 600;
@@ -128,6 +129,36 @@
   line-height: 1.55;
   color: var(--text-2);
   margin-top: 2px;
+}
+
+/* Tabs preview (?view=tabs): factor strip + one panel at a time */
+.qp-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.qp-tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px 10px;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.qp-tab:hover { color: var(--text); background: var(--bg-wash); }
+.qp-tab.active { color: var(--text); border-bottom-color: var(--claret); }
+.qp-tab-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.qp-takeaway-block.qp-tab-panel {
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  border-top-width: 1px;
+  border-top-color: transparent;
 }
 .qp-meter {
   flex: 1;

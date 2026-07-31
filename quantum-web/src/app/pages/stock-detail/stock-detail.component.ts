@@ -25,9 +25,17 @@ export class StockDetailComponent implements OnInit {
    *  Explicit columns instead of CSS multicol — Chrome clips/bleeds cards
    *  with break-inside:avoid in a multicol flow. */
   factorColumns: FactorDef[][] = [];
+  presentFactors: FactorDef[] = [];
+
+  /** Preview: /stock/:ticker?view=tabs renders the factors as a tabbed panel
+   *  instead of the two-column dashboard. */
+  tabsView = false;
+  activeFactorKey = '';
 
   private buildFactorColumns(): void {
     const present = this.factors.filter(f => this.takeaways(f.key).length);
+    this.presentFactors = present;
+    this.activeFactorKey = present[0]?.key ?? '';
     const a: FactorDef[] = [], b: FactorDef[] = [];
     let ha = 0, hb = 0;
     for (const f of present) {
@@ -82,6 +90,7 @@ export class StockDetailComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
+    this.tabsView = this.route.snapshot.queryParamMap.get('view') === 'tabs';
     const ticker = this.route.snapshot.paramMap.get('ticker') ?? '';
     this.stock = await this.supabase.getStockByTicker(ticker);
     if (!this.stock) {
@@ -123,10 +132,19 @@ export class StockDetailComponent implements OnInit {
   }
 
   /** Same score banding used across the site (block-score-bars, factor pages). */
-  scoreColor(s: number): string {
-    if (s >= 66) return 'var(--bull)';
-    if (s >= 33) return 'var(--warn)';
-    return 'var(--bear)';
+  scoreBand(s: number): 'high' | 'mid' | 'low' {
+    if (s >= 66) return 'high';
+    if (s >= 33) return 'mid';
+    return 'low';
+  }
+
+  dotColor(key: string): string {
+    const s = this.factorSentiments[key];
+    return s === 'positive' ? 'var(--bull)' : s === 'negative' ? 'var(--bear)' : 'var(--text-muted)';
+  }
+
+  setTab(key: string) {
+    this.activeFactorKey = key;
   }
 
   goHome() {
