@@ -1,3 +1,4 @@
+import json
 import math
 import io
 import re
@@ -696,6 +697,24 @@ def analyze_ticker(ticker_sym, simulations=1000, days=3):
             f"(simulations={num_simulations}, days={num_days})"
         )
         return jsonify({"error": "Internal server error"}), 500
+
+
+@app.route('/competition/<ticker>', methods=['GET'])
+def competition_exhibit(ticker):
+    """Deterministic Competition Quant Exhibit (peer comp, market share, HHI,
+    relative valuation from SEC EDGAR + Polygon). See competition_quant.py.
+    Figures are deterministic; the only LLM use is pinned peer-set membership."""
+    try:
+        import competition_quant as cq
+        res, rows, subj_row, peer_rows = cq.run(ticker.upper(), cq.MAX_PEERS_DEFAULT)
+        md = cq.render_md(res, rows, subj_row, peer_rows)
+        body = json.dumps({"ticker": ticker.upper(), "markdown": md, "data": res}, default=str)
+        return app.response_class(body, mimetype='application/json')
+    except SystemExit as e:
+        return jsonify({"error": str(e)}), 422
+    except Exception:
+        logger.exception(f"competition exhibit failed for {ticker}")
+        return jsonify({"error": "competition exhibit failed"}), 500
 
 
 if __name__ == '__main__':
