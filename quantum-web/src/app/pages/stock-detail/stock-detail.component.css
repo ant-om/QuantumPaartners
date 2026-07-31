@@ -1,5 +1,28 @@
+/* Title row — name + ticker left, about/website/updated right */
+.qp-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.qp-title-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.qp-updated {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* Company profile — compact disclosure, expands on hover or click */
-.qp-about-co { position: relative; display: inline-block; margin: 2px 0 18px; }
+.qp-about-co { position: relative; display: inline-block; }
 .qp-about-co-btn {
   display: inline-flex;
   align-items: center;
@@ -22,7 +45,8 @@
   display: none;
   position: absolute;
   top: calc(100% + 8px);
-  left: 0;
+  left: auto;
+  right: 0;
   z-index: 40;
   width: min(560px, 82vw);
   max-height: 340px;
@@ -58,18 +82,31 @@
 .qp-takeaway-titlegroup { display: inline-flex; align-items: center; gap: 12px; }
 .qp-takeaway-title-link { color: var(--oxford); text-decoration: none; }
 .qp-takeaway-title-link:hover { text-decoration: underline; text-underline-offset: 3px; }
-.qp-takeaway-list { padding-left: 18px; }
-.qp-takeaway-list li { font-size: 0.86rem; line-height: 1.55; margin-bottom: 7px; }
+.qp-takeaway-list { list-style: none; margin: 0; padding: 0; }
 
-/* Per-category score meter — bar length carries the value, banded status
- *  color is redundant, the number is the direct label */
-.qp-takeaway-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 106px;
-  gap: 12px;
-  align-items: start;
+/* Category row: heading + right-aligned meter on one line (all meters line
+ *  up flush right), takeaway text below full width */
+.qp-takeaway-item { padding: 7px 0; border-bottom: 1px dashed var(--border); }
+.qp-takeaway-item:last-child { border-bottom: 0; padding-bottom: 2px; }
+.qp-takeaway-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
-.qp-takeaway-meter { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.qp-takeaway-item-head b {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+.qp-takeaway-text {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+.qp-takeaway-meter { flex: 0 0 106px; display: flex; align-items: center; gap: 8px; }
 .qp-meter {
   flex: 1;
   height: 6px;
@@ -84,10 +121,6 @@
   color: var(--text-2);
   min-width: 20px;
   text-align: right;
-}
-@media (max-width: 640px) {
-  .qp-takeaway-row { grid-template-columns: 1fr; gap: 4px; }
-  .qp-takeaway-meter { max-width: 200px; margin-top: 2px; }
 }
 
 /* Overview / summary card — the hero of the detail page */
@@ -183,15 +216,13 @@
 }
 .qp-summary-bullets li::marker { color: var(--accent); }
 
-/* ── Committee verdict (new R5 rows) — replaces the gauge in the anchor ── */
-.qp-verdict {
-  flex-shrink: 0;
-  min-width: 150px;
-  padding: 14px 20px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-wash);
-  text-align: center;
+/* ── Committee verdict (new R5 rows) — a horizontal strip above the headline ── */
+.qp-verdict-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 .qp-verdict-kicker {
   font-family: var(--font-mono);
@@ -200,22 +231,20 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 6px;
   white-space: nowrap;
 }
-.qp-verdict-rec {
+.qp-verdict-word {
   font-family: var(--font-display);
-  font-size: var(--step-3);
+  font-size: var(--step-2);
   font-weight: 700;
   letter-spacing: -0.01em;
-  line-height: 1.05;
+  line-height: 1;
 }
-.qp-verdict.buy  .qp-verdict-rec { color: var(--claret); }
-.qp-verdict.hold .qp-verdict-rec { color: var(--oxford); }
-.qp-verdict.sell .qp-verdict-rec { color: var(--bear); }
+.qp-verdict-word.buy  { color: var(--claret); }
+.qp-verdict-word.hold { color: var(--oxford); }
+.qp-verdict-word.sell { color: var(--bear); }
 .qp-verdict-conviction {
   display: inline-block;
-  margin-top: 10px;
   padding: 3px 11px;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
@@ -225,7 +254,7 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-2);
-  background: var(--surface);
+  background: var(--bg-wash);
   white-space: nowrap;
 }
 .qp-verdict-conviction.high { color: var(--text); border-color: var(--border-strong); }
@@ -267,7 +296,4 @@
   font-size: 0.82rem;
   line-height: 1.55;
   color: var(--text-2);
-}
-@media (max-width: 640px) {
-  .qp-verdict { align-self: stretch; }
 }

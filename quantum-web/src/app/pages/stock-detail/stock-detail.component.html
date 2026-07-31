@@ -8,15 +8,22 @@
 
   <a routerLink="/" class="qp-back">← All stocks</a>
 
-  <!-- Title -->
+  <!-- Title: one dense row — name + ticker left, about/website/updated right -->
   <div class="qp-stock-titleblock">
-    <div class="qp-stock-ticker">{{ stock.ticker }} · {{ stock.exchange }}</div>
-    <div class="qp-stock-name">{{ stock.name }}</div>
-    <div>
-      <span *ngIf="stock.sector" class="qp-badge">{{ stock.sector }}</span>
-      <span *ngIf="stock.industry" class="qp-badge">{{ stock.industry }}</span>
-      <span *ngIf="stock.country" class="qp-badge">{{ stock.country }}</span>
-      <a *ngIf="stock.website" [href]="stock.website" target="_blank" class="qp-badge-link">↗ Website</a>
+    <div class="qp-title-row">
+      <div class="qp-stock-name">{{ stock.name }}</div>
+      <div class="qp-stock-ticker">{{ stock.ticker }}</div>
+      <div class="qp-title-meta">
+        <div *ngIf="stock.description" class="qp-about-co" [class.open]="aboutOpen">
+          <button type="button" class="qp-about-co-btn"
+                  (click)="aboutOpen = !aboutOpen" [attr.aria-expanded]="aboutOpen">
+            About <span class="qp-about-co-icon">ⓘ</span>
+          </button>
+          <div class="qp-about-co-panel">{{ stock.description }}</div>
+        </div>
+        <a *ngIf="stock.website" [href]="stock.website" target="_blank" class="qp-badge-link">↗ Website</a>
+        <span *ngIf="analysis" class="qp-updated">Updated {{ analysis.run_at | date:'mediumDate' }}</span>
+      </div>
     </div>
   </div>
 
@@ -24,74 +31,43 @@
   <div class="qp-body">
     <article class="qp-article">
 
-      <!-- Infobox floated right inside the article -->
-      <div class="qp-infobox">
-        <div class="qp-infobox-head">{{ stock.ticker }}</div>
-        <div *ngIf="logoUrl && !logoFailed" class="qp-infobox-logo-wrap">
-          <img [src]="logoUrl" [alt]="stock.name" class="qp-infobox-logo" (error)="logoFailed = true">
-        </div>
-        <div class="qp-infobox-row">
-          <span class="qp-infobox-label">Exchange</span>
-          <span class="qp-infobox-value">{{ stock.exchange }}</span>
-        </div>
-        <div class="qp-infobox-row">
-          <span class="qp-infobox-label">Sector</span>
-          <span class="qp-infobox-value">{{ stock.sector }}</span>
-        </div>
-        <div class="qp-infobox-row">
-          <span class="qp-infobox-label">Industry</span>
-          <span class="qp-infobox-value">{{ stock.industry }}</span>
-        </div>
-        <div class="qp-infobox-row">
-          <span class="qp-infobox-label">Country</span>
-          <span class="qp-infobox-value">{{ stock.country }}</span>
-        </div>
-        <div *ngIf="analysis" class="qp-infobox-row">
-          <span class="qp-infobox-label">Updated</span>
-          <span class="qp-infobox-value">{{ analysis.run_at | date:'mediumDate' }}</span>
-        </div>
-      </div>
-
-      <!-- Company profile — compact disclosure, expands on hover or click -->
-      <div *ngIf="stock.description" class="qp-about-co" [class.open]="aboutOpen">
-        <button type="button" class="qp-about-co-btn"
-                (click)="aboutOpen = !aboutOpen" [attr.aria-expanded]="aboutOpen">
-          About {{ stock.name }} <span class="qp-about-co-icon">ⓘ</span>
-        </button>
-        <div class="qp-about-co-panel">{{ stock.description }}</div>
-      </div>
-
       <!-- Overview: verdict + narrative on the left, horizons + risks rail on
            the right — one dashboard card instead of a stacked column -->
       <div *ngIf="analysis?.summary as sum" appReveal id="section-summary" class="qp-summary">
         <div class="qp-summary-grid">
           <div class="qp-summary-main">
-            <div class="qp-score-anchor">
-              <div class="qp-score-anchor-gauge" *ngIf="!verdict && sum.score !== undefined && sum.score !== null">
-                <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
-              </div>
-              <div *ngIf="verdict as v" class="qp-verdict"
-                   [class.buy]="v.recommendation === 'BUY'"
-                   [class.hold]="v.recommendation === 'HOLD'"
-                   [class.sell]="v.recommendation === 'SELL'">
-                <div class="qp-verdict-kicker">Committee verdict</div>
-                <div class="qp-verdict-rec">{{ v.recommendation }}</div>
+            <!-- R5 rows: verdict as a horizontal strip, headline full width -->
+            <ng-container *ngIf="verdict as v">
+              <div class="qp-verdict-strip">
+                <span class="qp-verdict-kicker">Committee verdict</span>
+                <span class="qp-verdict-word"
+                      [class.buy]="v.recommendation === 'BUY'"
+                      [class.hold]="v.recommendation === 'HOLD'"
+                      [class.sell]="v.recommendation === 'SELL'">{{ v.recommendation }}</span>
                 <span class="qp-verdict-conviction"
                       [class.high]="v.conviction === 'HIGH'"
                       [class.medium]="v.conviction === 'MEDIUM'"
                       [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
+                <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
               </div>
-              <div>
-                <div class="qp-summary-head">
-                  <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
-                  <div class="qp-summary-meta">
-                    <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
-                  </div>
+              <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
+            </ng-container>
+
+            <!-- Legacy rows: numeric gauge beside the headline -->
+            <div *ngIf="!verdict" class="qp-score-anchor">
+              <div class="qp-score-anchor-gauge" *ngIf="sum.score !== undefined && sum.score !== null">
+                <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
+              </div>
+              <div class="qp-summary-head">
+                <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
+                <div class="qp-summary-meta">
+                  <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
                 </div>
-                <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
-                     [innerHTML]="sum.narrative | md : stock.ticker"></div>
               </div>
             </div>
+
+            <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
+                 [innerHTML]="sum.narrative | md : stock.ticker"></div>
           </div>
 
           <aside *ngIf="horizonRows.length || sum.bullets?.length" class="qp-summary-side">
@@ -141,21 +117,23 @@
             <div class="qp-takeaway-head">
               <div class="qp-takeaway-titlegroup">
                 <h3 class="qp-takeaway-title">
-                  <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }}</a>
+                  <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-title-link">{{ f.label }} →</a>
                 </h3>
                 <app-sentiment-chip [sentiment]="factorSentiments[f.key]"></app-sentiment-chip>
               </div>
-              <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-link">Full analysis →</a>
             </div>
             <ul class="qp-takeaway-list">
-              <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-row">
-                <div class="qp-takeaway-text"><b>{{ t.heading }}.</b> {{ t.takeaway }}</div>
-                <div *ngIf="t.score !== null" class="qp-takeaway-meter"
-                     [title]="'Conclusion score: ' + t.score + '/100'">
-                  <span class="qp-meter"><span class="qp-meter-fill" [style.width.%]="t.score"
-                        [style.background]="scoreColor(t.score)"></span></span>
-                  <span class="qp-meter-num qp-mono">{{ t.score }}</span>
+              <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
+                <div class="qp-takeaway-item-head">
+                  <b>{{ t.heading }}</b>
+                  <div *ngIf="t.score !== null" class="qp-takeaway-meter"
+                       [title]="'Conclusion score: ' + t.score + '/100'">
+                    <span class="qp-meter"><span class="qp-meter-fill" [style.width.%]="t.score"
+                          [style.background]="scoreColor(t.score)"></span></span>
+                    <span class="qp-meter-num qp-mono">{{ t.score }}</span>
+                  </div>
                 </div>
+                <div class="qp-takeaway-text">{{ t.takeaway }}</div>
               </li>
             </ul>
           </div>

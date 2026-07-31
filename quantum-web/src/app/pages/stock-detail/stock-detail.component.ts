@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
-import { LogoService } from '../../services/logo.service';
 import { FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
 @Component({
@@ -17,15 +16,10 @@ export class StockDetailComponent implements OnInit {
   history: ScoreHistoryPoint[] = [];
   loading = true;
   notFound = false;
-  logoFailed = false;
   aboutOpen = false;
 
-  /** Per-factor conclusion sentiment for the TOC chips — computed once per load. */
+  /** Per-factor conclusion sentiment for the section-header chips — computed once per load. */
   factorSentiments: Record<string, Sentiment | undefined> = {};
-
-  get logoUrl(): string {
-    return this.stock ? this.logos.resolve(this.stock) : '';
-  }
 
   readonly factors: FactorDef[] = FACTORS;
 
@@ -68,8 +62,7 @@ export class StockDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private supabase: SupabaseService,
-    private seo: SeoService,
-    private logos: LogoService
+    private seo: SeoService
   ) {}
 
   async ngOnInit() {
