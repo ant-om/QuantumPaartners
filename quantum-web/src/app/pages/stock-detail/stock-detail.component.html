@@ -132,7 +132,7 @@
               <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
                 <span *ngIf="t.score !== null" class="qp-score-pill qp-mono"
                       [class]="'qp-score-pill qp-mono ' + scoreStance(t.score).band"
-                      [title]="'Conclusion score: ' + t.score + '/100'">{{ scoreStance(t.score).label }}</span>
+                      [title]="'Conclusion score: ' + t.score + '/100'">{{ scoreStance(t.score).label }} · {{ t.score }}</span>
                 <span *ngIf="t.score === null" class="qp-score-pill qp-mono none">—</span>
                 <div class="qp-takeaway-body">
                   <b>{{ t.heading }}</b>

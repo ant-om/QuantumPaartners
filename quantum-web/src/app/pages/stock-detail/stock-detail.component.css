@@ -88,7 +88,7 @@
  *  (diverging red / gray / green), heading + takeaway to the right */
 .qp-takeaway-item {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-columns: 138px minmax(0, 1fr);
   gap: 16px;
   padding: 8px 0;
   border-bottom: 1px dashed var(--border);
