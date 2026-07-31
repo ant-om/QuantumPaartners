@@ -270,7 +270,7 @@ a { color: inherit; text-decoration: none; }
 
 /* ── Detail page shell ──────────────────────────────────── */
 .qp-detail {
-  max-width: 880px;
+  max-width: 1140px;
   margin: 0 auto;
   padding: 128px 24px 100px;
 }

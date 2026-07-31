@@ -113,6 +113,13 @@ export class StockDetailComponent implements OnInit {
       .map(b => ({ heading: b.heading, takeaway: b.takeaway, score: b.score ?? null }));
   }
 
+  /** Same score banding used across the site (block-score-bars, factor pages). */
+  scoreColor(s: number): string {
+    if (s >= 66) return 'var(--bull)';
+    if (s >= 33) return 'var(--warn)';
+    return 'var(--bear)';
+  }
+
   /** Factor TOC click → smooth-scroll to that factor's conclusion section. */
   scrollToFactor(ev: Event, key: string) {
     ev.preventDefault();

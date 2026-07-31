@@ -72,7 +72,35 @@
 .qp-takeaway-block { scroll-margin-top: 84px; }
 .qp-takeaway-title-link { color: inherit; text-decoration: none; }
 .qp-takeaway-title-link:hover { text-decoration: underline; text-underline-offset: 3px; }
-.qp-takeaway-score { font-size: 0.68rem; color: var(--text-muted); margin-left: 6px; white-space: nowrap; }
+
+/* Per-category score meter — bar length carries the value, banded status
+ *  color is redundant, the number is the direct label */
+.qp-takeaway-row {
+  display: grid;
+  grid-template-columns: minmax(0, 72ch) 148px;
+  gap: 24px;
+  align-items: start;
+}
+.qp-takeaway-meter { display: flex; align-items: center; gap: 8px; margin-top: 7px; }
+.qp-meter {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-wash);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.qp-meter-fill { display: block; height: 100%; border-radius: 3px; }
+.qp-meter-num {
+  font-size: 0.72rem;
+  color: var(--text-2);
+  min-width: 20px;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .qp-takeaway-row { grid-template-columns: 1fr; gap: 4px; }
+  .qp-takeaway-meter { max-width: 200px; margin-top: 2px; }
+}
 
 /* Overview / summary card — the hero of the detail page */
 .qp-summary {
@@ -107,6 +135,13 @@
   letter-spacing: -0.02em;
   line-height: 1.2;
   text-wrap: balance;
+}
+/* Full-sentence headlines (R5 rows) read as a standfirst, not a banner */
+.qp-summary-headline.long {
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
 }
 .qp-summary-meta {
   display: flex;

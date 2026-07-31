@@ -80,7 +80,7 @@
           </div>
           <div>
             <div class="qp-summary-head">
-              <h2 class="qp-summary-headline">{{ sum.headline }}</h2>
+              <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
               <div class="qp-summary-meta">
                 <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
               </div>
@@ -147,9 +147,14 @@
               <a [routerLink]="['/stock', stock.ticker, f.slug]" class="qp-takeaway-link">Full analysis →</a>
             </div>
             <ul class="qp-takeaway-list">
-              <li *ngFor="let t of takeaways(f.key)">
-                <b>{{ t.heading }}.</b> {{ t.takeaway }}
-                <span *ngIf="t.score !== null" class="qp-takeaway-score qp-mono">{{ t.score }}/100</span>
+              <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-row">
+                <div class="qp-takeaway-text"><b>{{ t.heading }}.</b> {{ t.takeaway }}</div>
+                <div *ngIf="t.score !== null" class="qp-takeaway-meter"
+                     [title]="'Conclusion score: ' + t.score + '/100'">
+                  <span class="qp-meter"><span class="qp-meter-fill" [style.width.%]="t.score"
+                        [style.background]="scoreColor(t.score)"></span></span>
+                  <span class="qp-meter-num qp-mono">{{ t.score }}</span>
+                </div>
               </li>
             </ul>
           </div>
