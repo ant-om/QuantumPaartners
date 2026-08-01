@@ -12,13 +12,19 @@ const browserDistFolder = resolve(serverDistFolder, '../browser');
 const indexHtml = join(serverDistFolder, 'index.server.html');
 
 const app = express();
-const commonEngine = new CommonEngine({ allowedHosts: ['stockbar.app'] });
+/** Public origin of this deployment (canonicals, og:url, sitemap). Overridable
+ *  per environment — e.g. the Railway review URL — without a code change. */
+const ENV_ORIGIN = process.env['SITE_ORIGIN']?.replace(/\/$/, '');
+
+const commonEngine = new CommonEngine({
+  allowedHosts: ['stockbar.app', ...(ENV_ORIGIN ? [new URL(ENV_ORIGIN).hostname] : [])],
+});
 
 /**
  * /sitemap.xml — every page incl. the 7 factor URLs per ticker,
  * lastmod from the analysis run_at, cached in memory for ~1h.
  */
-const SITE_ORIGIN = 'https://stockbar.app';
+const SITE_ORIGIN = ENV_ORIGIN || 'https://stockbar.app';
 let sitemapCache: { xml: string; at: number } | null = null;
 const SITEMAP_TTL_MS = 60 * 60 * 1000;
 
