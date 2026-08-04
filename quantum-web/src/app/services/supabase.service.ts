@@ -94,6 +94,26 @@ export function cleanAnalysisSummary(summary: AnalysisSummary | null): AnalysisS
   return { ...summary, headline, narrative };
 }
 
+/** Display-side repair of structurer takeaways: the DS R5 structurer derives
+ *  `takeaway` as the first sentence of the section's Projection but falls back
+ *  to a hard 200-char cut (mid-word) whenever that sentence runs longer than
+ *  220 chars. The full text is stored in `body`, so re-derive the complete
+ *  first sentence with no cap; only if the section has no sentence end at all,
+ *  cut on a word boundary with an ellipsis. Well-formed rows pass through
+ *  untouched. */
+export function cleanSectionBlocks(blocks: SectionBlock[] | null): SectionBlock[] | null {
+  if (!blocks) return blocks;
+  return blocks.map(b => {
+    if (!b?.body || !b.takeaway) return b;
+    const looksCut = b.takeaway.length >= 190 && !/[.!?…"”')\]]$/.test(b.takeaway.trim());
+    if (!looksCut) return b;
+    const t = b.body.replace(/[*#`_]+/g, '').replace(/^Projection:?\s*/i, '').trim();
+    const m = t.match(/^([\s\S]{20,600}?[.!?…])(?=\s|$)/);
+    const takeaway = (m ? m[1] : t.slice(0, 300).replace(/\s+\S*$/, '') + '…').trim();
+    return { ...b, takeaway };
+  });
+}
+
 // Shape of the live Railway quant API (GET /analyze/<ticker>), stored as-is in `metrics`.
 export interface PricePoint { date: string; close: number; }
 export interface VixPoint { date: string; vix: number; }
@@ -285,6 +305,9 @@ export class SupabaseService {
       if (error) return null;
       const row = data as StockAnalysis;
       row.summary = cleanAnalysisSummary(row.summary);
+      for (const key of ['political', 'price', 'macro', 'management', 'sentiment', 'competitor', 'financial'] as const) {
+        row[key] = cleanSectionBlocks(row[key]);
+      }
       return row;
     });
   }
