@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionVerbalScore, sectionCertaintyText } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
@@ -108,18 +108,27 @@ export class StockDetailComponent implements OnInit {
     return (this.analysis as any)?.[key] ?? null;
   }
 
-  takeaways(key: string): { heading: string; takeaway: string; insight: string | null; refs: number[]; score: number | null; certainty: number | null }[] {
+  takeaways(key: string): { heading: string; takeaway: string; insight: string | null; refs: number[]; score: number | null; certainty: number | null; verbal: string | null; verbalFull: string | null; certaintyText: string | null }[] {
     return (this.blocks(key) ?? [])
       .filter(b => b.takeaway)
-      .map(b => ({
-        heading: b.heading,
-        // full Projection paragraph when the body has one; legacy rows keep the stored one-liner
-        takeaway: sectionProjection(b) ?? b.takeaway,
-        insight: sectionInsight(b),
-        refs: sectionChainRefs(b),
-        score: b.score ?? null,
-        certainty: b.certainty ?? null,
-      }));
+      .map(b => {
+        const verbalFull = sectionVerbalScore(b);
+        // pill shows the committee's own word, trimmed of parentheticals;
+        // the full phrase stays in the hover popover
+        const verbal = verbalFull ? (verbalFull.split('(')[0].trim().replace(/[\/\-–—]$/, '').trim() || null) : null;
+        return {
+          heading: b.heading,
+          // full Projection paragraph when the body has one; legacy rows keep the stored one-liner
+          takeaway: sectionProjection(b) ?? b.takeaway,
+          insight: sectionInsight(b),
+          refs: sectionChainRefs(b),
+          score: b.score ?? null,
+          certainty: b.certainty ?? null,
+          verbal,
+          verbalFull,
+          certaintyText: sectionCertaintyText(b),
+        };
+      });
   }
 
   /** Citation label for a chain the section names as its source —

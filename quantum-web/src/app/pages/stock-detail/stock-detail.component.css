@@ -141,51 +141,68 @@
   align-self: start;
   min-width: 0;
 }
-.qp-row-scores .qp-score-pill { width: 100%; box-sizing: border-box; margin-top: 0; }
-/* Twin box of the stance pill: same width, border, radius and insets, so the
- * two cards stack with flush edges */
-.qp-certainty {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  padding: 4px 6px 6px;
+.qp-row-scores .qp-score-pill { width: 100%; box-sizing: border-box; margin-top: 0; white-space: normal; }
+/* Stance pill with a hover popover carrying certainty + its explanation */
+.qp-stance-wrap { position: relative; }
+.qp-stance-pop {
+  display: none;
+  position: absolute;
+  left: calc(100% + 10px);
+  top: -4px;
+  z-index: 40;
+  width: 270px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow);
+  padding: 10px 12px;
 }
-.qp-certainty-head {
+.qp-stance-wrap:hover .qp-stance-pop,
+.qp-stance-wrap:focus-within .qp-stance-pop { display: block; }
+.qp-pop-head {
   display: flex;
   justify-content: space-between;
-  font-size: 0.58rem;
-  letter-spacing: 0.07em;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   margin-bottom: 4px;
 }
-.qp-certainty-track {
+.qp-pop-track {
   display: block;
   height: 4px;
   background: var(--border);
   border-radius: 2px;
   overflow: hidden;
+  margin-bottom: 8px;
 }
-.qp-certainty-fill {
-  display: block;
-  height: 100%;
-  background: var(--text-muted);
-  border-radius: 2px;
+.qp-pop-fill { display: block; height: 100%; background: var(--text-muted); border-radius: 2px; }
+.qp-pop-verbal {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+.qp-pop-text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+@media (max-width: 700px) {
+  .qp-stance-pop { left: 0; top: calc(100% + 6px); width: min(280px, 78vw); }
 }
 
-/* Insight paragraphs — the evidence under the Projection, quieter than it */
+/* Insight paragraphs — the evidence under the Projection, quieter than it.
+ * NOTE: injected via [innerHTML], so the p/li typography lives in the GLOBAL
+ * stylesheet (styles.css) — scoped rules can't reach injected nodes. */
 .qp-takeaway-insight {
   margin-top: 7px;
   font-size: 0.8rem;
   line-height: 1.55;
   color: var(--text-muted);
 }
-.qp-takeaway-insight p { margin: 0 0 8px; }
-.qp-takeaway-insight p:last-child { margin-bottom: 0; }
-.qp-takeaway-insight ul { margin: 4px 0 8px; padding-left: 18px; }
 
 /* Wikipedia-style source citations under each category: links to the specific
  * reasoning chains the committee itself named as this conclusion's inputs */

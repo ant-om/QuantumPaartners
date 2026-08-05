@@ -133,7 +133,9 @@ export function sectionProjection(block: SectionBlock | null): string | null {
  *  beyond the Projection to show. */
 export function sectionInsight(block: SectionBlock | null): string | null {
   if (!block?.body) return null;
-  const m = block.body.match(/(?:^|\n)\s*\*{0,2}Insight\*{0,2}:?\s*\n([\s\S]*?)(?=\n\s*\*{0,2}(?:Verbal Score|Projection Numeric|Certainty)|$)/i);
+  // Label forms in production: "**Insight**\n" (political/sentiment/fs),
+  // "**Insight:**\n" (price/management), "**Insight:** same-line text" (macro/competitor)
+  const m = block.body.match(/(?:^|\n)\s*\*{0,2}Insight:?\*{0,2}:?[ \t]*\n?([\s\S]*?)(?=\n\s*\*{0,2}(?:Verbal Score|Projection Numeric|Certainty)\b|$)/i);
   if (m) {
     const t = m[1].replace(/\n\s*-{3,}\s*$/, '').trim();
     return t.length >= 40 ? t : null;
@@ -143,6 +145,27 @@ export function sectionInsight(block: SectionBlock | null): string | null {
     return t.length >= 40 ? t : null;
   }
   return null;
+}
+
+/** The committee's own Verbal Score for a section ("Poor", "Strong Sell",
+ *  "Neutral/Mixed") — shown on the stance pill instead of a derived band word
+ *  so the site never invents vocabulary. Null on legacy rows. */
+export function sectionVerbalScore(block: SectionBlock | null): string | null {
+  if (!block?.body) return null;
+  const m = block.body.match(/\*{0,2}Verbal Score:?\*{0,2}:?[ \t]*\n?[ \t]*([^\n]+)/i);
+  const t = m ? m[1].replace(/[*_`]+/g, '').trim() : '';
+  return t.length >= 2 ? t : null;
+}
+
+/** The Certainty Explanation — why the committee is as sure as it is. Feeds
+ *  the hover popover on the stance pill. Absent on Sentiment (its prompt
+ *  never asks for one) and on legacy rows. */
+export function sectionCertaintyText(block: SectionBlock | null): string | null {
+  if (!block?.body) return null;
+  const m = block.body.match(/\*{0,2}Certainty Explanation:?\*{0,2}:?[ \t]*\n?([\s\S]*?)(?=\n\s*\*{0,2}Certainty (?:Verbal|Numeric)\b|\n\s*-{3,}|$)/i);
+  if (!m) return null;
+  const t = m[1].replace(/[*#`_]+/g, '').replace(/\s+/g, ' ').trim();
+  return t.length >= 10 ? t : null;
 }
 
 /** Chain numbers a section cites as its sources ("directly from Chains 2 and 5",
