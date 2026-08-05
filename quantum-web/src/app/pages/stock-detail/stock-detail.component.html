@@ -139,7 +139,6 @@
                         <span>Certainty</span><span *ngIf="t.certainty !== null">{{ t.certainty }}/100</span>
                       </div>
                       <span *ngIf="t.certainty !== null" class="qp-pop-track"><span class="qp-pop-fill" [style.width.%]="t.certainty"></span></span>
-                      <div *ngIf="t.verbalFull" class="qp-pop-verbal">Committee's words: {{ t.verbalFull }}</div>
                       <p *ngIf="t.certaintyText" class="qp-pop-text">{{ t.certaintyText }}</p>
                       <p *ngIf="!t.certaintyText" class="qp-pop-text qp-pop-none">The committee did not provide a certainty explanation for this section.</p>
                     </div>

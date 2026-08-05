@@ -178,12 +178,6 @@
   margin-bottom: 8px;
 }
 .qp-pop-fill { display: block; height: 100%; background: var(--text-muted); border-radius: 2px; }
-.qp-pop-verbal {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 5px;
-}
 .qp-pop-text {
   margin: 0;
   font-size: 0.75rem;

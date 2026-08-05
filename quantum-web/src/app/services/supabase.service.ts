@@ -147,16 +147,6 @@ export function sectionInsight(block: SectionBlock | null): string | null {
   return null;
 }
 
-/** The committee's own Verbal Score for a section ("Poor", "Strong Sell",
- *  "Neutral/Mixed") — shown on the stance pill instead of a derived band word
- *  so the site never invents vocabulary. Null on legacy rows. */
-export function sectionVerbalScore(block: SectionBlock | null): string | null {
-  if (!block?.body) return null;
-  const m = block.body.match(/\*{0,2}Verbal Score:?\*{0,2}:?[ \t]*\n?[ \t]*([^\n]+)/i);
-  const t = m ? m[1].replace(/[*_`]+/g, '').trim() : '';
-  return t.length >= 2 ? t : null;
-}
-
 /** The Certainty Explanation — why the committee is as sure as it is. Feeds
  *  the hover popover on the stance pill. Absent on Sentiment (its prompt
  *  never asks for one) and on legacy rows. */
