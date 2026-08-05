@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionChainRefs } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
@@ -108,15 +108,17 @@ export class StockDetailComponent implements OnInit {
     return (this.analysis as any)?.[key] ?? null;
   }
 
-  takeaways(key: string): { heading: string; takeaway: string; refs: number[]; score: number | null }[] {
+  takeaways(key: string): { heading: string; takeaway: string; insight: string | null; refs: number[]; score: number | null; certainty: number | null }[] {
     return (this.blocks(key) ?? [])
       .filter(b => b.takeaway)
       .map(b => ({
         heading: b.heading,
         // full Projection paragraph when the body has one; legacy rows keep the stored one-liner
         takeaway: sectionProjection(b) ?? b.takeaway,
+        insight: sectionInsight(b),
         refs: sectionChainRefs(b),
         score: b.score ?? null,
+        certainty: b.certainty ?? null,
       }));
   }
 

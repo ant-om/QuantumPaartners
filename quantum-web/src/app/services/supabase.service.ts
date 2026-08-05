@@ -26,6 +26,7 @@ export interface SectionBlock {
   bullets?: string[];
   sentiment?: Sentiment;
   score?: number; // 0-100
+  certainty?: number; // 0-100, committee confidence — distinct from score (direction)
 }
 
 // ── R5 committee verdict (new structurer rows only — legacy rows lack it) ──
@@ -123,6 +124,25 @@ export function sectionProjection(block: SectionBlock | null): string | null {
   const m = t.match(/^\s*Projection:?\s*([\s\S]*?)(?:\n\s*(?:Insight|Verbal Score|Projection Numeric|Certainty)\b|$)/i);
   const p = m ? m[1].replace(/\s+/g, ' ').trim() : '';
   return p.length >= 20 ? p : null;
+}
+
+/** Insight paragraphs of a structurer section, returned as raw markdown for
+ *  the `md` pipe. Falls back to the whole body when the section has no
+ *  Projection/Insight labelling at all (e.g. macro's scenario-list outlooks),
+ *  so those rows still show their full content. Null when there is nothing
+ *  beyond the Projection to show. */
+export function sectionInsight(block: SectionBlock | null): string | null {
+  if (!block?.body) return null;
+  const m = block.body.match(/(?:^|\n)\s*\*{0,2}Insight\*{0,2}:?\s*\n([\s\S]*?)(?=\n\s*\*{0,2}(?:Verbal Score|Projection Numeric|Certainty)|$)/i);
+  if (m) {
+    const t = m[1].replace(/\n\s*-{3,}\s*$/, '').trim();
+    return t.length >= 40 ? t : null;
+  }
+  if (!/\*{0,2}Projection\*{0,2}/i.test(block.body)) {
+    const t = block.body.replace(/\n\s*-{3,}\s*$/, '').trim();
+    return t.length >= 40 ? t : null;
+  }
+  return null;
 }
 
 /** Chain numbers a section cites as its sources ("directly from Chains 2 and 5",

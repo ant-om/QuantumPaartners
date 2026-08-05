@@ -130,13 +130,24 @@
             </div>
             <ul class="qp-takeaway-list">
               <li *ngFor="let t of takeaways(f.key)" class="qp-takeaway-item">
-                <span *ngIf="t.score !== null" class="qp-score-pill qp-mono"
-                      [class]="'qp-score-pill qp-mono ' + scoreStance(t.score).band"
-                      [title]="'Conclusion score: ' + t.score + '/100'">{{ scoreStance(t.score).label }} · {{ t.score }}</span>
-                <span *ngIf="t.score === null" class="qp-score-pill qp-mono none">—</span>
+                <div class="qp-row-scores">
+                  <span *ngIf="t.score !== null" class="qp-score-pill qp-mono"
+                        [class]="'qp-score-pill qp-mono ' + scoreStance(t.score).band"
+                        [title]="'Conclusion score: ' + t.score + '/100'">{{ scoreStance(t.score).label }} · {{ t.score }}</span>
+                  <span *ngIf="t.score === null" class="qp-score-pill qp-mono none">—</span>
+                  <div *ngIf="t.certainty !== null" class="qp-certainty"
+                       [title]="'Committee certainty in this projection: ' + t.certainty + '/100'">
+                    <div class="qp-certainty-head qp-mono">
+                      <span>Certainty</span><span>{{ t.certainty }}</span>
+                    </div>
+                    <span class="qp-certainty-track"><span class="qp-certainty-fill" [style.width.%]="t.certainty"></span></span>
+                  </div>
+                </div>
                 <div class="qp-takeaway-body">
                   <b>{{ t.heading }}</b>
                   <div class="qp-takeaway-text">{{ t.takeaway }}</div>
+                  <div *ngIf="t.insight" class="qp-takeaway-insight qp-md"
+                       [innerHTML]="t.insight | md : stock.ticker : f.slug"></div>
                   <div *ngIf="t.refs.length" class="qp-chain-refs">
                     <span class="qp-refs-label qp-mono">Sources</span>
                     <a *ngFor="let r of t.refs" class="qp-chain-ref qp-mono"
