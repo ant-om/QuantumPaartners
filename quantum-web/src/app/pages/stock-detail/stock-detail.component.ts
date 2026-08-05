@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionChainRefs } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
-import { FACTORS, FactorDef, factorDisplay } from '../../models/factors';
+import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
 @Component({
   selector: 'app-stock-detail',
@@ -108,10 +108,25 @@ export class StockDetailComponent implements OnInit {
     return (this.analysis as any)?.[key] ?? null;
   }
 
-  takeaways(key: string): { heading: string; takeaway: string; score: number | null }[] {
+  takeaways(key: string): { heading: string; takeaway: string; refs: number[]; score: number | null }[] {
     return (this.blocks(key) ?? [])
       .filter(b => b.takeaway)
-      .map(b => ({ heading: b.heading, takeaway: b.takeaway, score: b.score ?? null }));
+      .map(b => ({
+        heading: b.heading,
+        // full Projection paragraph when the body has one; legacy rows keep the stored one-liner
+        takeaway: sectionProjection(b) ?? b.takeaway,
+        refs: sectionChainRefs(b),
+        score: b.score ?? null,
+      }));
+  }
+
+  /** Citation label for a chain the section names as its source —
+   *  "Chain 2 · Balance Sheet" when the module's topic registry covers it. */
+  chainRefLabel(f: FactorDef, r: number): string {
+    const topics = CHAIN_TOPICS[f.module];
+    // last registry entry is the conclusion itself, not a numbered chain
+    const topic = topics && r <= topics.length - 1 ? topics[r - 1] : null;
+    return topic ? `Chain ${r} · ${topic}` : `Chain ${r}`;
   }
 
   /** Conclusion scores are 0-100 bullishness — surface them as stance words

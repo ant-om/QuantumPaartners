@@ -97,6 +97,17 @@ export class FactorDetailComponent implements OnInit {
     this.chain = await this.supabase.getFactorChain(this.stock.id, factor.module);
     this.chainTopics = this.resolveChainTopics(factor.module, this.chain);
     this.chainLoading = false;
+    this.scrollToFragment();
+  }
+
+  /** Chain-citation links from the stock page target #chain-N anchors, but the
+   *  chain renders only after the lazy fetch above — the router's own anchor
+   *  scrolling fires too early to find them. Browser only; no-op during SSR. */
+  private scrollToFragment(): void {
+    if (typeof document === 'undefined') return;
+    const frag = this.route.snapshot.fragment;
+    if (!frag) return;
+    setTimeout(() => document.getElementById(frag)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   /** Topic labels apply only when the module's chain count matches the known

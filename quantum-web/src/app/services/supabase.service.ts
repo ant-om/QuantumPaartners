@@ -114,6 +114,35 @@ export function cleanSectionBlocks(blocks: SectionBlock[] | null): SectionBlock[
   });
 }
 
+/** Full Projection paragraph of a structurer section — the text between the
+ *  "Projection" label and the next labelled part (Insight / scores / certainty).
+ *  Null when the body doesn't follow the R5-structurer shape (legacy rows). */
+export function sectionProjection(block: SectionBlock | null): string | null {
+  if (!block?.body) return null;
+  const t = block.body.replace(/[*#`_]+/g, '');
+  const m = t.match(/^\s*Projection:?\s*([\s\S]*?)(?:\n\s*(?:Insight|Verbal Score|Projection Numeric|Certainty)\b|$)/i);
+  const p = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+  return p.length >= 20 ? p : null;
+}
+
+/** Chain numbers a section cites as its sources ("directly from Chains 2 and 5",
+ *  "Chain‑1 refined analysis"). The committee writes these citations itself in
+ *  each section's Certainty Explanation, so links built from them are
+ *  data-grounded, never guessed. */
+export function sectionChainRefs(block: SectionBlock | null): number[] {
+  if (!block?.body) return [];
+  const found = new Set<number>();
+  const re = /\bchains?[\s‐-―-]*((?:\d+[\s,‐-―-]*(?:and\s+|&\s*)?)+)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(block.body))) {
+    for (const d of m[1].match(/\d+/g) ?? []) {
+      const n = parseInt(d, 10);
+      if (n >= 1 && n <= 9) found.add(n);
+    }
+  }
+  return [...found].sort((a, b) => a - b);
+}
+
 // Shape of the live Railway quant API (GET /analyze/<ticker>), stored as-is in `metrics`.
 export interface PricePoint { date: string; close: number; }
 export interface VixPoint { date: string; vix: number; }

@@ -137,6 +137,12 @@
                 <div class="qp-takeaway-body">
                   <b>{{ t.heading }}</b>
                   <div class="qp-takeaway-text">{{ t.takeaway }}</div>
+                  <div *ngIf="t.refs.length" class="qp-chain-refs">
+                    <span class="qp-refs-label qp-mono">Sources</span>
+                    <a *ngFor="let r of t.refs" class="qp-chain-ref qp-mono"
+                       [routerLink]="['/stock', stock.ticker, f.slug]" [fragment]="'chain-' + r"
+                       title="Jump to this chain's full reasoning">{{ chainRefLabel(f, r) }} →</a>
+                  </div>
                 </div>
               </li>
             </ul>

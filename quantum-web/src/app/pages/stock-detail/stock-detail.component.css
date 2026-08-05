@@ -132,6 +132,31 @@
   margin-top: 2px;
 }
 
+/* Wikipedia-style source citations under each category: links to the specific
+ * reasoning chains the committee itself named as this conclusion's inputs */
+.qp-chain-refs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-top: 6px;
+}
+.qp-refs-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.qp-chain-ref,
+.qp-chain-ref:visited {
+  font-size: 0.68rem;
+  color: var(--oxford);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+.qp-chain-ref:hover { text-decoration-style: solid; }
+
 /* Tabs preview (?view=tabs): factor strip + one panel at a time */
 .qp-tabs {
   display: flex;
