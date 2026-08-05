@@ -190,6 +190,7 @@
   line-height: 1.5;
   color: var(--text-2);
 }
+.qp-pop-none { color: var(--text-muted); font-style: italic; }
 @media (max-width: 700px) {
   .qp-stance-pop { left: 0; top: calc(100% + 6px); width: min(280px, 78vw); }
 }
@@ -199,9 +200,9 @@
  * stylesheet (styles.css) — scoped rules can't reach injected nodes. */
 .qp-takeaway-insight {
   margin-top: 7px;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   line-height: 1.55;
-  color: var(--text-muted);
+  color: var(--text-2);
 }
 
 /* Wikipedia-style source citations under each category: links to the specific

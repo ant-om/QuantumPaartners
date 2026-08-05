@@ -133,14 +133,15 @@
                 <div class="qp-row-scores">
                   <div *ngIf="t.score !== null" class="qp-stance-wrap">
                     <span class="qp-score-pill qp-mono" tabindex="0"
-                          [class]="'qp-score-pill qp-mono ' + scoreStance(t.score).band">{{ (t.verbal || scoreStance(t.score).label) }} · {{ t.score }}</span>
+                          [class]="'qp-score-pill qp-mono ' + scoreStance(t.score).band">{{ scoreStance(t.score).label }} · {{ t.score }}</span>
                     <div *ngIf="t.certainty !== null || t.certaintyText" class="qp-stance-pop">
                       <div class="qp-pop-head qp-mono">
                         <span>Certainty</span><span *ngIf="t.certainty !== null">{{ t.certainty }}/100</span>
                       </div>
                       <span *ngIf="t.certainty !== null" class="qp-pop-track"><span class="qp-pop-fill" [style.width.%]="t.certainty"></span></span>
-                      <div *ngIf="t.verbalFull && t.verbalFull !== t.verbal" class="qp-pop-verbal">Verbal score: {{ t.verbalFull }}</div>
+                      <div *ngIf="t.verbalFull" class="qp-pop-verbal">Committee's words: {{ t.verbalFull }}</div>
                       <p *ngIf="t.certaintyText" class="qp-pop-text">{{ t.certaintyText }}</p>
+                      <p *ngIf="!t.certaintyText" class="qp-pop-text qp-pop-none">The committee did not provide a certainty explanation for this section.</p>
                     </div>
                   </div>
                   <span *ngIf="t.score === null" class="qp-score-pill qp-mono none">—</span>
