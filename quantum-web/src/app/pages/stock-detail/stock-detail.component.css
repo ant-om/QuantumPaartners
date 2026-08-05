@@ -141,8 +141,17 @@
   align-self: start;
   min-width: 0;
 }
-.qp-row-scores .qp-score-pill { width: 100%; box-sizing: border-box; }
-.qp-certainty { display: block; }
+.qp-row-scores .qp-score-pill { width: 100%; box-sizing: border-box; margin-top: 0; }
+/* Twin box of the stance pill: same width, border, radius and insets, so the
+ * two cards stack with flush edges */
+.qp-certainty {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 4px 6px 6px;
+}
 .qp-certainty-head {
   display: flex;
   justify-content: space-between;
@@ -151,7 +160,7 @@
   text-transform: uppercase;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 .qp-certainty-track {
   display: block;
