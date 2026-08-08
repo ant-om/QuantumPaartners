@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionCertaintyText } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionCertaintyText, r5CaseEvaluations } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
@@ -36,6 +36,36 @@ export class StockDetailComponent implements OnInit {
     const v = this.analysis?.summary?.verdict;
     if (!v || !['BUY', 'HOLD', 'SELL'].includes(v.recommendation)) return null;
     return v;
+  }
+
+  /** "Committee view | The other side" toggle on the summary card. Under a
+   *  directional verdict only the OPPOSITE case appears (the aligned case IS
+   *  the narrative); a HOLD shows both. Empty on legacy rows. */
+  summaryView: 'committee' | 'bull' | 'bear' = 'committee';
+  otherViews: { key: 'bull' | 'bear'; label: string; text: string }[] = [];
+
+  private buildOtherViews(): void {
+    this.summaryView = 'committee';
+    this.otherViews = [];
+    const cases = r5CaseEvaluations(this.analysis?.r5_synthesis);
+    const rec = this.verdict?.recommendation;
+    if (rec === 'SELL' && cases.bull) {
+      this.otherViews.push({ key: 'bull', label: 'The other side', text: cases.bull });
+    } else if (rec === 'BUY' && cases.bear) {
+      this.otherViews.push({ key: 'bear', label: 'The other side', text: cases.bear });
+    } else if (rec === 'HOLD') {
+      if (cases.bull) this.otherViews.push({ key: 'bull', label: 'Bull case', text: cases.bull });
+      if (cases.bear) this.otherViews.push({ key: 'bear', label: 'Bear case', text: cases.bear });
+    }
+  }
+
+  /** Risk bullets carry a bold lead phrase as markdown — render the bold,
+   *  never the literal asterisks. Escaped first, so only our <b> survives. */
+  bulletHtml(b: string): string {
+    return b
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+      .replace(/[*_`]+/g, '');
   }
 
   /** Horizon strip rows (Short / Medium / Long), skipping absent horizons.
@@ -83,6 +113,7 @@ export class StockDetailComponent implements OnInit {
     }
     this.analysis = await this.supabase.getAnalysis(this.stock.id);
     this.buildHorizonRows();
+    this.buildOtherViews();
     for (const f of this.factors) this.factorSentiments[f.key] = factorDisplay(this.blocks(f.key)).sentiment;
     this.presentFactors = this.factors.filter(f => this.takeaways(f.key).length);
     this.activeFactorKey = this.presentFactors[0]?.key ?? '';

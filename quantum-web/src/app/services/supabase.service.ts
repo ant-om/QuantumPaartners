@@ -158,6 +158,31 @@ export function sectionCertaintyText(block: SectionBlock | null): string | null 
   return t.length >= 10 ? t : null;
 }
 
+/** The strongest-version ("Evaluation") paragraphs of R5's bull and bear
+ *  cases, extracted from the stored synthesis text by its own "### N." section
+ *  headers. Feeds the "Committee view | The other side" toggle — under a
+ *  directional verdict only the OPPOSITE case is shown (the aligned case IS
+ *  the narrative). Null fields when the row has no R5 synthesis (legacy). */
+export function r5CaseEvaluations(synthesis: string | null | undefined): { bull: string | null; bear: string | null } {
+  if (!synthesis) return { bull: null, bear: null };
+  const sections: Record<number, string> = {};
+  const re = /^###\s*(\d+)\.[^\n]*\n/gm;
+  let m: RegExpExecArray | null;
+  let prev: { n: number; end: number } | null = null;
+  while ((m = re.exec(synthesis))) {
+    if (prev) sections[prev.n] = synthesis.slice(prev.end, m.index).trim();
+    prev = { n: parseInt(m[1], 10), end: re.lastIndex };
+  }
+  if (prev) sections[prev.n] = synthesis.slice(prev.end).trim();
+  const evalPara = (sec: string | undefined): string | null => {
+    if (!sec) return null;
+    const em = sec.match(/\*{0,2}Evaluation:?\*{0,2}:?\s*\n?([\s\S]+)$/i);
+    const t = (em ? em[1] : '').trim();
+    return t.length >= 60 ? t : null;
+  };
+  return { bull: evalPara(sections[6]), bear: evalPara(sections[7]) };
+}
+
 /** Chain numbers a section cites as its sources ("directly from Chains 2 and 5",
  *  "Chain‑1 refined analysis"). The committee writes these citations itself in
  *  each section's Certainty Explanation, so links built from them are
@@ -228,6 +253,8 @@ export interface StockAnalysis {
   sentiment: SectionBlock[] | null;
   competitor: SectionBlock[] | null;
   financial: SectionBlock[] | null;
+  /** R5 synthesis text (verbatim) — present on ds_r5_structurer rows only. */
+  r5_synthesis?: string | null;
   metrics: Metrics | null;
 }
 
@@ -361,7 +388,7 @@ export class SupabaseService {
     return this.cached(`analysis:${stockId}`, async () => {
       const { data, error } = await this.client
         .from('stock_analyses')
-        .select('id, stock_id, source, run_at, summary, political, price, macro, management, sentiment, competitor, financial, metrics')
+        .select('id, stock_id, source, run_at, summary, political, price, macro, management, sentiment, competitor, financial, metrics, r5_synthesis:raw_output->r5->>synthesis_verbatim')
         .eq('stock_id', stockId)
         .single();
       if (error) return null;

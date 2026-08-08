@@ -98,9 +98,22 @@ function linkSegment(text: string, terms: FactorLinkTerm[], used: Set<string>, b
     for (const t of terms) {
       if (used.has(t.slug)) continue;
       for (const re of t.patterns) {
-        const m = re.exec(text.slice(pos));
+        // walk past matches inside hyphenated compounds ("risk-management",
+        // "management-led") — \b can't see across a hyphen
+        let from = pos;
+        let m: RegExpExecArray | null = null;
+        while ((m = re.exec(text.slice(from)))) {
+          const s = from + m.index;
+          const e = s + m[0].length;
+          if (/[-–‑]/.test(text[s - 1] ?? '') || /[-–‑]/.test(text[e] ?? '')) {
+            from = s + 1;
+            continue;
+          }
+          from = s;
+          break;
+        }
         if (!m) continue;
-        const start = pos + m.index;
+        const start = from;
         const end = start + m[0].length;
         if (!best || start < best.start || (start === best.start && end > best.end)) {
           best = { slug: t.slug, start, end };

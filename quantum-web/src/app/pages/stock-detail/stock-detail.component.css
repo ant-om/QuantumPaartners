@@ -132,6 +132,16 @@
   margin-top: 2px;
 }
 
+/* Committee view | The other side — compact toggle inside the summary card */
+.qp-view-tabs { margin: 12px 0 14px; }
+.qp-view-tabs .qp-tab { padding: 8px 13px 7px; font-size: 0.78rem; }
+.qp-other-side {
+  border-left: 3px solid var(--border-strong);
+  padding-left: 16px;
+}
+.qp-other-side.bull { border-left-color: var(--bull); }
+.qp-other-side.bear { border-left-color: var(--bear); }
+
 /* Left rail of each category row: stance pill (direction) stacked over the
  * certainty meter (confidence) — two different questions, two different looks */
 .qp-row-scores {

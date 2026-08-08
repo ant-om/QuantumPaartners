@@ -47,7 +47,6 @@
                       [class.high]="v.conviction === 'HIGH'"
                       [class.medium]="v.conviction === 'MEDIUM'"
                       [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
-                <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
               </div>
               <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
             </ng-container>
@@ -65,8 +64,21 @@
               </div>
             </div>
 
-            <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
+            <!-- Committee view | The other side — the steelman against the call -->
+            <div *ngIf="otherViews.length" class="qp-tabs qp-view-tabs">
+              <button type="button" class="qp-tab" [class.active]="summaryView === 'committee'"
+                      (click)="summaryView = 'committee'">Committee view</button>
+              <button *ngFor="let v of otherViews" type="button" class="qp-tab"
+                      [class.active]="summaryView === v.key"
+                      (click)="summaryView = v.key">{{ v.label }}</button>
+            </div>
+            <div *ngIf="sum.narrative && summaryView === 'committee'" class="qp-summary-narrative qp-md"
                  [innerHTML]="sum.narrative | md : stock.ticker"></div>
+            <ng-container *ngFor="let v of otherViews">
+              <div *ngIf="summaryView === v.key" class="qp-summary-narrative qp-other-side qp-md"
+                   [class.bull]="v.key === 'bull'" [class.bear]="v.key === 'bear'"
+                   [innerHTML]="v.text | md : stock.ticker"></div>
+            </ng-container>
           </div>
 
           <!-- Horizons | Key risks — two columns under the narrative, so the
@@ -88,9 +100,9 @@
               </div>
             </div>
             <div *ngIf="sum.bullets?.length">
-              <div class="qp-side-kicker">{{ verdict ? 'Key risks' : 'Highlights' }}</div>
+              <div class="qp-side-kicker">{{ verdict ? 'What would change this call' : 'Highlights' }}</div>
               <ul class="qp-summary-bullets">
-                <li *ngFor="let b of sum.bullets">{{ b }}</li>
+                <li *ngFor="let b of sum.bullets" [innerHTML]="bulletHtml(b)"></li>
               </ul>
             </div>
           </div>
