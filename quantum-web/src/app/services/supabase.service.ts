@@ -60,6 +60,18 @@ export interface AnalysisSummary {
   verdict?: AnalysisVerdict;
 }
 
+/** One committee verdict per pipeline run, from the archive project's
+ *  read-only verdict_history view (backed by r5_synthesis). */
+export interface VerdictHistoryPoint {
+  run_date: string;
+  ticker: string;
+  recommendation: VerdictRecommendation | null;
+  conviction: VerdictConviction | null;
+  short_term: HorizonStance | null;
+  medium_term: HorizonStance | null;
+  long_term: HorizonStance | null;
+}
+
 /** Display-side repair of structurer artifacts in `summary`: the DS R5
  *  structurer hard-cuts `headline` at 200 chars (mid-word) and can leak
  *  unpaired markdown `**` tokens from its Section-9 parse. When the headline
@@ -418,6 +430,25 @@ export class SupabaseService {
 
   /** Score evolution over runs. Backed by the analysis_score_history SQL view
    *  (doc/sql/analysis_score_history.sql) — returns [] until the view exists. */
+  /** Verdict-per-run history from the committee archive (a separate Supabase
+   *  project, public read-only view). Empty on any failure — never blocks render. */
+  async getVerdictHistory(ticker: string): Promise<VerdictHistoryPoint[]> {
+    try {
+      return await this.cached(`verdicts:${ticker.toUpperCase()}`, async () => {
+        const url = `${environment.archiveSupabaseUrl}/rest/v1/verdict_history` +
+          `?ticker=eq.${encodeURIComponent(ticker.toUpperCase())}&order=run_date.asc`;
+        const res = await fetch(url, { headers: {
+          apikey: environment.archiveAnonKey,
+          Authorization: `Bearer ${environment.archiveAnonKey}`,
+        } });
+        if (!res.ok) return [];
+        return (await res.json()) as VerdictHistoryPoint[];
+      });
+    } catch {
+      return [];
+    }
+  }
+
   async getScoreHistory(stockId: string): Promise<ScoreHistoryPoint[]> {
     try {
       return await this.cached(`history:${stockId}`, async () => {

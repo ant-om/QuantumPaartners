@@ -48,6 +48,22 @@
                       [class.medium]="v.conviction === 'MEDIUM'"
                       [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
               </div>
+              <div *ngIf="verdictHistory.length >= 2" class="qp-verdict-history">
+                <span class="qp-vh-kicker qp-mono">Signal history</span>
+                <span class="qp-vh-cells">
+                  <span *ngFor="let p of verdictHistory" class="qp-vh-cell"
+                        [class.sell]="p.recommendation === 'SELL'"
+                        [class.buy]="p.recommendation === 'BUY'"
+                        [class.hold]="p.recommendation === 'HOLD'"
+                        [title]="(p.run_date | date:'mediumDate') + ' — ' + (p.recommendation || '?') + (p.conviction ? ' · ' + (p.conviction | lowercase) + ' conviction' : '')"></span>
+                </span>
+                <span class="qp-vh-summary" *ngIf="verdictStreak > 1">
+                  {{ v.recommendation }} for {{ verdictStreak }} consecutive runs<ng-container *ngIf="streakStart"> · since {{ streakStart | date:'MMM d' }}</ng-container>
+                </span>
+                <span class="qp-vh-summary" *ngIf="verdictStreak === 1">
+                  Changed to {{ v.recommendation }} this run
+                </span>
+              </div>
               <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
             </ng-container>
 

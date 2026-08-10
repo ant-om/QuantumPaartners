@@ -132,6 +132,38 @@
   margin-top: 2px;
 }
 
+/* Signal history — one cell per pipeline run, streak stated in text so the
+ * meaning never rides on color alone */
+.qp-verdict-history {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0 2px;
+}
+.qp-vh-kicker {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.qp-vh-cells { display: inline-flex; gap: 3px; }
+.qp-vh-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--bg-wash);
+  border: 1px solid var(--border);
+}
+.qp-vh-cell.sell { background: rgba(168, 30, 30, 0.35); border-color: rgba(168, 30, 30, 0.5); }
+.qp-vh-cell.buy  { background: rgba(20, 123, 88, 0.35); border-color: rgba(20, 123, 88, 0.5); }
+.qp-vh-cell.hold { background: var(--bg-wash); border-color: var(--border-strong); }
+.qp-vh-summary {
+  font-size: 0.72rem;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Committee view | The other side — compact toggle inside the summary card */
 .qp-view-tabs { margin: 12px 0 14px; }
 .qp-view-tabs .qp-tab { padding: 8px 13px 7px; font-size: 0.78rem; }

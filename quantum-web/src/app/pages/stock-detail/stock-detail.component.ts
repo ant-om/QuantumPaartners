@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionCertaintyText, r5CaseEvaluations } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionCertaintyText, r5CaseEvaluations, VerdictHistoryPoint } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
@@ -14,6 +14,13 @@ export class StockDetailComponent implements OnInit {
   stock: Stock | null = null;
   analysis: StockAnalysis | null = null;
   history: ScoreHistoryPoint[] = [];
+  verdictHistory: VerdictHistoryPoint[] = [];
+  verdictStreak = 0;
+
+  get streakStart(): string | null {
+    if (!this.verdictStreak) return null;
+    return this.verdictHistory[this.verdictHistory.length - this.verdictStreak]?.run_date ?? null;
+  }
   loading = true;
   notFound = false;
   aboutOpen = false;
@@ -133,6 +140,12 @@ export class StockDetailComponent implements OnInit {
     });
     // score history is optional (view may not exist yet) — never blocks render
     this.history = await this.supabase.getScoreHistory(this.stock.id);
+    this.verdictHistory = await this.supabase.getVerdictHistory(this.stock.ticker);
+    const vh = this.verdictHistory;
+    const last = vh[vh.length - 1]?.recommendation ?? null;
+    let n = 0;
+    for (let i = vh.length - 1; i >= 0 && last && vh[i].recommendation === last; i--) n++;
+    this.verdictStreak = n;
   }
 
   blocks(key: string): SectionBlock[] | null {
