@@ -48,20 +48,34 @@
                       [class.medium]="v.conviction === 'MEDIUM'"
                       [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
               </div>
-              <div *ngIf="verdictHistory.length >= 2" class="qp-verdict-history">
-                <span class="qp-vh-kicker qp-mono">Signal history</span>
-                <span class="qp-vh-cells">
+              <div *ngIf="verdictHistory.length >= 2" class="qp-verdict-history" [class.has-chart]="!!vhChart">
+                <div class="qp-vh-head">
+                  <span class="qp-vh-kicker qp-mono">{{ vhChart ? 'Calls vs price' : 'Signal history' }}</span>
+                  <span class="qp-vh-summary" *ngIf="verdictStreak > 1">
+                    {{ v.recommendation }} for {{ verdictStreak }} consecutive runs<ng-container *ngIf="streakStart"> · since {{ streakStart | date:'MMM d' }}</ng-container>
+                  </span>
+                  <span class="qp-vh-summary" *ngIf="verdictStreak === 1">
+                    Changed to {{ v.recommendation }} this run
+                  </span>
+                </div>
+                <svg *ngIf="vhChart" class="qp-vh-chart" viewBox="0 0 560 96" role="img"
+                     [attr.aria-label]="stock.ticker + ' price, last 30 sessions, with one marker per committee call'">
+                  <path [attr.d]="vhChart.path" fill="none" stroke="var(--oxford)" stroke-width="2" stroke-linejoin="round"/>
+                  <g *ngFor="let d of vhChart.dots">
+                    <circle [attr.cx]="d.x" [attr.cy]="d.y" r="4.5" stroke="var(--card)" stroke-width="2"
+                            [class]="'qp-vh-dot ' + d.cls"><title>{{ d.title }}</title></circle>
+                  </g>
+                  <text [attr.x]="vhChart.lastX + 6" [attr.y]="vhChart.lastY + 4" class="qp-vh-pricelabel">{{ vhChart.lastLabel }}</text>
+                </svg>
+                <div *ngIf="vhChart" class="qp-vh-dates qp-mono">
+                  <span>{{ vhChart.startDate | date:'MMM d' }}</span><span>{{ vhChart.endDate | date:'MMM d' }}</span>
+                </div>
+                <span *ngIf="!vhChart" class="qp-vh-cells">
                   <span *ngFor="let p of verdictHistory" class="qp-vh-cell"
                         [class.sell]="p.recommendation === 'SELL'"
                         [class.buy]="p.recommendation === 'BUY'"
                         [class.hold]="p.recommendation === 'HOLD'"
                         [title]="(p.run_date | date:'mediumDate') + ' — ' + (p.recommendation || '?') + (p.conviction ? ' · ' + (p.conviction | lowercase) + ' conviction' : '')"></span>
-                </span>
-                <span class="qp-vh-summary" *ngIf="verdictStreak > 1">
-                  {{ v.recommendation }} for {{ verdictStreak }} consecutive runs<ng-container *ngIf="streakStart"> · since {{ streakStart | date:'MMM d' }}</ng-container>
-                </span>
-                <span class="qp-vh-summary" *ngIf="verdictStreak === 1">
-                  Changed to {{ v.recommendation }} this run
                 </span>
               </div>
               <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>

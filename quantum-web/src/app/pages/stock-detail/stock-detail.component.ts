@@ -21,6 +21,45 @@ export class StockDetailComponent implements OnInit {
     if (!this.verdictStreak) return null;
     return this.verdictHistory[this.verdictHistory.length - this.verdictStreak]?.run_date ?? null;
   }
+
+  /** Price line (Railway 30-day closes from `metrics`) with one marker per
+   *  committee run, colored by its verdict — the calls plotted on the tape.
+   *  Null when the row has no price series; the plain cell strip renders then. */
+  vhChart: {
+    path: string;
+    dots: { x: number; y: number; cls: string; title: string }[];
+    lastLabel: string; lastX: number; lastY: number;
+    startDate: string; endDate: string;
+  } | null = null;
+
+  private buildVhChart(): void {
+    this.vhChart = null;
+    const closes: { date: string; close: number }[] = this.analysis?.metrics?.price?.last_30d_close ?? [];
+    if (closes.length < 5 || this.verdictHistory.length < 2) return;
+    const W = 560, H = 96, padL = 6, padR = 52, padT = 10, padB = 10;
+    const lo = Math.min(...closes.map(c => c.close));
+    const hi = Math.max(...closes.map(c => c.close));
+    const x = (i: number) => padL + (i / (closes.length - 1)) * (W - padL - padR);
+    const y = (v: number) => hi === lo ? H / 2 : padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
+    const path = closes.map((c, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(c.close).toFixed(1)}`).join(' ');
+    const dots = this.verdictHistory.map(p => {
+      let idx = -1;
+      for (let i = 0; i < closes.length; i++) if (closes[i].date <= p.run_date) idx = i;
+      if (idx < 0) idx = 0;
+      return {
+        x: x(idx), y: y(closes[idx].close),
+        cls: (p.recommendation || 'hold').toLowerCase(),
+        title: `${p.run_date} — ${p.recommendation || '?'}${p.conviction ? ' · ' + p.conviction.toLowerCase() + ' conviction' : ''} · $${closes[idx].close.toFixed(0)}`,
+      };
+    });
+    const last = closes[closes.length - 1];
+    this.vhChart = {
+      path, dots,
+      lastLabel: `$${last.close.toFixed(0)}`,
+      lastX: x(closes.length - 1), lastY: y(last.close),
+      startDate: closes[0].date, endDate: last.date,
+    };
+  }
   loading = true;
   notFound = false;
   aboutOpen = false;
@@ -146,6 +185,7 @@ export class StockDetailComponent implements OnInit {
     let n = 0;
     for (let i = vh.length - 1; i >= 0 && last && vh[i].recommendation === last; i--) n++;
     this.verdictStreak = n;
+    this.buildVhChart();
   }
 
   blocks(key: string): SectionBlock[] | null {

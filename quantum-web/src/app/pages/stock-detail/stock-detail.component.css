@@ -163,6 +163,23 @@
   color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
+/* Calls-vs-price chart: verdict markers on the Railway 30-day close line */
+.qp-verdict-history.has-chart { display: block; max-width: 560px; }
+.qp-vh-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
+.qp-vh-chart { width: 100%; height: auto; display: block; }
+.qp-vh-dot.sell { fill: var(--bear); }
+.qp-vh-dot.buy  { fill: var(--bull); }
+.qp-vh-dot.hold { fill: var(--text-muted); }
+.qp-vh-pricelabel { font: 600 11px var(--font-mono); fill: var(--text-2); }
+.qp-vh-dates {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: -2px;
+}
 
 /* Committee view | The other side — compact toggle inside the summary card */
 .qp-view-tabs { margin: 12px 0 14px; }
