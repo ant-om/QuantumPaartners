@@ -171,6 +171,9 @@
 .qp-vh-dot.buy  { fill: var(--bull); }
 .qp-vh-dot.hold { fill: var(--text-muted); }
 .qp-vh-pricelabel { font: 600 11px var(--font-mono); fill: var(--text-2); }
+.qp-vh-gridlabel { font: 500 10px var(--font-mono); fill: var(--text-muted); }
+.qp-vh-hoverlabel { font: 600 11px var(--font-mono); fill: var(--text); }
+.qp-vh-chart { cursor: crosshair; }
 .qp-vh-dates {
   display: flex;
   justify-content: space-between;

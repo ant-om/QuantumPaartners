@@ -22,43 +22,83 @@ export class StockDetailComponent implements OnInit {
     return this.verdictHistory[this.verdictHistory.length - this.verdictStreak]?.run_date ?? null;
   }
 
-  /** Price line (Railway 30-day closes from `metrics`) with one marker per
+  /** Price chart (Railway 30-day closes from `metrics`) with one marker per
    *  committee run, colored by its verdict — the calls plotted on the tape.
+   *  Smooth line + gradient area + price grid + hover crosshair.
    *  Null when the row has no price series; the plain cell strip renders then. */
   vhChart: {
-    path: string;
+    linePath: string; areaPath: string;
     dots: { x: number; y: number; cls: string; title: string }[];
+    grid: { y: number; label: string }[];
+    points: { x: number; y: number; date: string; close: number }[];
     lastLabel: string; lastX: number; lastY: number;
     startDate: string; endDate: string;
   } | null = null;
+  chartHover: { x: number; y: number; label: string; anchor: 'start' | 'end' } | null = null;
+
+  private static readonly VH_W = 560;
+  private static readonly VH_H = 150;
 
   private buildVhChart(): void {
     this.vhChart = null;
     const closes: { date: string; close: number }[] = this.analysis?.metrics?.price?.last_30d_close ?? [];
     if (closes.length < 5 || this.verdictHistory.length < 2) return;
-    const W = 560, H = 96, padL = 6, padR = 52, padT = 10, padB = 10;
+    const W = StockDetailComponent.VH_W, H = StockDetailComponent.VH_H;
+    const padL = 6, padR = 54, padT = 14, padB = 12;
     const lo = Math.min(...closes.map(c => c.close));
     const hi = Math.max(...closes.map(c => c.close));
     const x = (i: number) => padL + (i / (closes.length - 1)) * (W - padL - padR);
     const y = (v: number) => hi === lo ? H / 2 : padT + (1 - (v - lo) / (hi - lo)) * (H - padT - padB);
-    const path = closes.map((c, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(c.close).toFixed(1)}`).join(' ');
+    const points = closes.map((c, i) => ({ x: x(i), y: y(c.close), date: c.date, close: c.close }));
+    const linePath = this.smoothPath(points);
+    const areaPath = `${linePath} L${points[points.length - 1].x.toFixed(1)},${H - 2} L${points[0].x.toFixed(1)},${H - 2} Z`;
     const dots = this.verdictHistory.map(p => {
       let idx = -1;
       for (let i = 0; i < closes.length; i++) if (closes[i].date <= p.run_date) idx = i;
       if (idx < 0) idx = 0;
       return {
-        x: x(idx), y: y(closes[idx].close),
+        x: points[idx].x, y: points[idx].y,
         cls: (p.recommendation || 'hold').toLowerCase(),
         title: `${p.run_date} — ${p.recommendation || '?'}${p.conviction ? ' · ' + p.conviction.toLowerCase() + ' conviction' : ''} · $${closes[idx].close.toFixed(0)}`,
       };
     });
+    const grid = [hi, (hi + lo) / 2, lo].map(v => ({ y: y(v), label: `$${v.toFixed(0)}` }));
     const last = closes[closes.length - 1];
     this.vhChart = {
-      path, dots,
+      linePath, areaPath, dots, grid, points,
       lastLabel: `$${last.close.toFixed(0)}`,
       lastX: x(closes.length - 1), lastY: y(last.close),
       startDate: closes[0].date, endDate: last.date,
     };
+  }
+
+  /** Catmull-Rom → cubic Bézier, the standard smooth financial line. */
+  private smoothPath(pts: { x: number; y: number }[]): string {
+    if (pts.length < 3) return pts.map((p, i) => `${i ? 'L' : 'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    let d = `M${pts[0].x.toFixed(1)},${pts[0].y.toFixed(1)}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
+      const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
+      d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  onChartMove(e: MouseEvent): void {
+    const c = this.vhChart;
+    if (!c) return;
+    const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
+    const vx = ((e.clientX - rect.left) / rect.width) * StockDetailComponent.VH_W;
+    let best = c.points[0];
+    for (const p of c.points) if (Math.abs(p.x - vx) < Math.abs(best.x - vx)) best = p;
+    const d = new Date(best.date + 'T00:00:00');
+    const label = `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · $${best.close.toFixed(0)}`;
+    this.chartHover = { x: best.x, y: best.y, label, anchor: best.x > StockDetailComponent.VH_W * 0.7 ? 'end' : 'start' };
+  }
+
+  onChartLeave(): void {
+    this.chartHover = null;
   }
   loading = true;
   notFound = false;

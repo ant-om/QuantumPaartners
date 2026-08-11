@@ -58,14 +58,35 @@
                     Changed to {{ v.recommendation }} this run
                   </span>
                 </div>
-                <svg *ngIf="vhChart" class="qp-vh-chart" viewBox="0 0 560 96" role="img"
-                     [attr.aria-label]="stock.ticker + ' price, last 30 sessions, with one marker per committee call'">
-                  <path [attr.d]="vhChart.path" fill="none" stroke="var(--oxford)" stroke-width="2" stroke-linejoin="round"/>
+                <svg *ngIf="vhChart" class="qp-vh-chart" viewBox="0 0 560 150" role="img"
+                     [attr.aria-label]="stock.ticker + ' price, last 30 sessions, with one marker per committee call'"
+                     (mousemove)="onChartMove($event)" (mouseleave)="onChartLeave()">
+                  <defs>
+                    <linearGradient id="vhFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" style="stop-color: var(--oxford)" stop-opacity="0.20"/>
+                      <stop offset="100%" style="stop-color: var(--oxford)" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <g *ngFor="let gl of vhChart.grid">
+                    <line x1="6" [attr.x2]="506" [attr.y1]="gl.y" [attr.y2]="gl.y"
+                          stroke="var(--border)" stroke-width="1" stroke-dasharray="2 4"/>
+                    <text x="512" [attr.y]="gl.y + 3.5" class="qp-vh-gridlabel">{{ gl.label }}</text>
+                  </g>
+                  <path [attr.d]="vhChart.areaPath" fill="url(#vhFill)" stroke="none"/>
+                  <path [attr.d]="vhChart.linePath" fill="none" stroke="var(--oxford)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                  <circle [attr.cx]="vhChart.lastX" [attr.cy]="vhChart.lastY" r="3" fill="var(--oxford)"/>
+                  <g *ngIf="chartHover">
+                    <line [attr.x1]="chartHover.x" [attr.x2]="chartHover.x" y1="8" y2="140"
+                          stroke="var(--border-strong)" stroke-width="1"/>
+                    <circle [attr.cx]="chartHover.x" [attr.cy]="chartHover.y" r="4" fill="var(--oxford)"
+                            stroke="var(--card)" stroke-width="2"/>
+                    <text [attr.x]="chartHover.anchor === 'end' ? chartHover.x - 8 : chartHover.x + 8" y="16"
+                          [attr.text-anchor]="chartHover.anchor" class="qp-vh-hoverlabel">{{ chartHover.label }}</text>
+                  </g>
                   <g *ngFor="let d of vhChart.dots">
-                    <circle [attr.cx]="d.x" [attr.cy]="d.y" r="4.5" stroke="var(--card)" stroke-width="2"
+                    <circle [attr.cx]="d.x" [attr.cy]="d.y" r="5" stroke="var(--card)" stroke-width="2"
                             [class]="'qp-vh-dot ' + d.cls"><title>{{ d.title }}</title></circle>
                   </g>
-                  <text [attr.x]="vhChart.lastX + 6" [attr.y]="vhChart.lastY + 4" class="qp-vh-pricelabel">{{ vhChart.lastLabel }}</text>
                 </svg>
                 <div *ngIf="vhChart" class="qp-vh-dates qp-mono">
                   <span>{{ vhChart.startDate | date:'MMM d' }}</span><span>{{ vhChart.endDate | date:'MMM d' }}</span>
