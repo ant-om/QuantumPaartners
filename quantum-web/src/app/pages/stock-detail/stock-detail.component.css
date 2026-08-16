@@ -132,67 +132,7 @@
   margin-top: 2px;
 }
 
-/* Signal history — one cell per pipeline run, streak stated in text so the
- * meaning never rides on color alone */
-.qp-verdict-history {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 8px 0 2px;
-}
-.qp-vh-kicker {
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-.qp-vh-cells { display: inline-flex; gap: 3px; }
-.qp-vh-cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  background: var(--bg-wash);
-  border: 1px solid var(--border);
-}
-.qp-vh-cell.sell { background: rgba(168, 30, 30, 0.35); border-color: rgba(168, 30, 30, 0.5); }
-.qp-vh-cell.buy  { background: rgba(20, 123, 88, 0.35); border-color: rgba(20, 123, 88, 0.5); }
-.qp-vh-cell.hold { background: var(--bg-wash); border-color: var(--border-strong); }
-.qp-vh-summary {
-  font-size: 0.72rem;
-  color: var(--text-2);
-  font-variant-numeric: tabular-nums;
-}
-/* Calls-vs-price chart: verdict markers on the Railway 30-day close line */
-.qp-verdict-history.has-chart { display: block; max-width: 560px; }
-.qp-vh-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 2px; }
-.qp-vh-chart { width: 100%; height: auto; display: block; }
-.qp-vh-dot.sell { fill: var(--bear); }
-.qp-vh-dot.buy  { fill: var(--bull); }
-.qp-vh-dot.hold { fill: var(--text-muted); }
-.qp-vh-pricelabel { font: 600 11px var(--font-mono); fill: var(--text-2); }
-.qp-vh-gridlabel { font: 500 10px var(--font-mono); fill: var(--text-muted); }
-.qp-vh-hoverlabel { font: 600 11px var(--font-mono); fill: var(--text); }
-.qp-vh-chart { cursor: crosshair; }
-.qp-vh-dates {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.6rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-top: -2px;
-}
 
-/* Committee view | The other side — compact toggle inside the summary card */
-.qp-view-tabs { margin: 12px 0 14px; }
-.qp-view-tabs .qp-tab { padding: 8px 13px 7px; font-size: 0.78rem; }
-.qp-other-side {
-  border-left: 3px solid var(--border-strong);
-  padding-left: 16px;
-}
-.qp-other-side.bull { border-left-color: var(--bull); }
-.qp-other-side.bear { border-left-color: var(--bear); }
 
 /* Left rail of each category row: stance pill (direction) stacked over the
  * certainty meter (confidence) — two different questions, two different looks */
@@ -413,48 +353,6 @@
 .qp-summary-bullets li::marker { color: var(--accent); }
 
 /* ── Committee verdict (new R5 rows) — a horizontal strip above the headline ── */
-.qp-verdict-strip {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-.qp-verdict-kicker {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.qp-verdict-word {
-  font-family: var(--font-display);
-  font-size: var(--step-2);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  line-height: 1;
-}
-.qp-verdict-word.buy  { color: var(--claret); }
-.qp-verdict-word.hold { color: var(--oxford); }
-.qp-verdict-word.sell { color: var(--bear); }
-.qp-verdict-conviction {
-  display: inline-block;
-  padding: 3px 11px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-2);
-  background: var(--bg-wash);
-  white-space: nowrap;
-}
-.qp-verdict-conviction.high { color: var(--text); border-color: var(--border-strong); }
-.qp-verdict-conviction.low  { color: var(--text-muted); }
 
 /* Horizon strip — compact Short / Medium / Long rows in the side rail:
  *  label + stance on one line, rationale wrapping underneath */
@@ -492,4 +390,61 @@
   font-size: 0.82rem;
   line-height: 1.55;
   color: var(--text-2);
+}
+
+
+/* ── Terminal verdict section (approved 2026-08-16) ─────────────────────── */
+.tv { background:#FBF2E7; color:#33302E; font-family:var(--font-body);
+  border:1px solid #D8CCB4; border-top:3px solid #990F3D; }
+.tv .k, .tv .k2 { font:700 10px/1 var(--font-mono); letter-spacing:.12em; color:#990F3D; margin-bottom:13px; }
+.tv .k.mutk { color:#8B857A; }
+.tv-tape { display:flex; align-items:baseline; gap:16px; padding:15px 22px; border-bottom:1px solid #D8CCB4;
+  font:600 10.5px/1 var(--font-mono); letter-spacing:.05em; color:#66604F; flex-wrap:wrap; }
+.tv-tape .tk { font-size:14px; letter-spacing:.03em; color:#33302E; }
+.tv-tape .mut { color:#A69F92; }
+.tv-tape .sep { width:1px; height:14px; background:#D8CCB4; align-self:center; }
+.tv-tape .neg { color:#990F3D; }
+.tv-tape .grow { flex:1; }
+.tv-tape .vchip { background:#990F3D; color:#FFF1E5; padding:7px 11px 5px; border-radius:2px; font-weight:700; letter-spacing:.08em; align-self:center; }
+.tv-tape .vchip.buy { background:#147B58; }
+.tv-tape .vchip.hold { background:#66604F; }
+.tv-main { display:grid; grid-template-columns:minmax(0,1fr) 514px; }
+.tv-main.no-chart { grid-template-columns:1fr; }
+.tv .cell { padding:16px 22px 22px; }
+.tv-main .call { border-right:1px solid #D8CCB4; padding-right:48px; }
+.tv-main.no-chart .call { border-right:0; }
+.tv-main .tvh { margin:0 0 14px; font:700 27px/1.3 var(--font-display); letter-spacing:-.005em; text-wrap:balance; color:#33302E; }
+.tv-main .nar { font-size:14.5px; line-height:1.66; color:#55504A; max-width:88ch; text-wrap:pretty; }
+.tv-main .nar b, .tv-main .nar strong { color:#33302E; }
+.tv-main .chart svg { width:100%; height:auto; display:block; background:#FFFDF9; border:1px solid #E2D6C0; border-radius:2px; padding:12px 4px 10px 12px; box-sizing:border-box; }
+.tv .ax { font:500 9.5px var(--font-mono); fill:#8B857A; }
+.tv .axb { font:700 10.5px var(--font-mono); fill:#33302E; }
+.tv .negk { color:#990F3D; float:right; }
+.tv .leg { font:600 9.5px/1 var(--font-mono); letter-spacing:.06em; color:#8B857A; padding-top:8px; }
+.tv .leg .ldot, .tv .leg .lring { display:inline-block; width:7px; height:7px; border-radius:50%; vertical-align:-1px; }
+.tv .leg .ldot { background:#990F3D; }
+.tv .leg .lring { border:2px solid #990F3D; width:5px; height:5px; }
+.tv-band { display:grid; grid-template-columns:5fr 7fr; border-top:1px solid #D8CCB4; }
+.tv-band .cell:first-child { border-right:1px solid #D8CCB4; }
+.tv .hz { margin-bottom:15px; }
+.tv .hz:last-child { margin-bottom:0; }
+.tv .hz-t { display:flex; justify-content:space-between; align-items:baseline; font:700 10.5px/1.4 var(--font-mono); letter-spacing:.08em; }
+.tv .hz-t i { font-style:normal; color:#A69F92; font-weight:500; }
+.tv .hz-t b { color:#990F3D; background:rgba(153,15,61,.08); padding:3px 6px 2px; border-radius:2px; }
+.tv .hz-t b.bull { color:#147B58; background:rgba(20,123,88,.08); }
+.tv .hz-t b.neu { color:#66604F; background:rgba(102,96,79,.08); }
+.tv .hz p { margin:5px 0 0; font-size:12.5px; line-height:1.55; color:#55504A; text-wrap:pretty; }
+.tv-band .tg { display:grid; grid-template-columns:1fr; gap:14px; }
+.tv .trig { display:grid; grid-template-columns:22px 1fr; gap:9px; }
+.tv .trig .tn { font:700 10.5px/20px var(--font-mono); color:#990F3D; }
+.tv .trig p { margin:0; font-size:12.5px; line-height:1.55; color:#55504A; text-wrap:pretty; }
+.tv .trig p b { color:#33302E; }
+.tv-other { border-top:1px solid #D8CCB4; border-left:3px solid #147B58; background:rgba(20,123,88,.05); padding:16px 22px 22px 19px; }
+.tv-other .k2 { color:#147B58; display:block; }
+.tv-other p { margin:0; font-size:13px; line-height:1.6; color:#55504A; max-width:92ch; text-wrap:pretty; }
+.tv-other.bearside { border-left-color:#990F3D; background:rgba(153,15,61,.04); }
+.tv-other.bearside .k2 { color:#990F3D; }
+@media (max-width: 980px) {
+  .tv-main, .tv-band { grid-template-columns:1fr; }
+  .tv-main .call, .tv-band .cell:first-child { border-right:0; border-bottom:1px solid #D8CCB4; padding-right:22px; }
 }

@@ -34,76 +34,97 @@
       <!-- Overview: verdict + narrative on the left, horizons + risks rail on
            the right — one dashboard card instead of a stacked column -->
       <div *ngIf="analysis?.summary as sum" appReveal id="section-summary" class="qp-summary">
-          <div class="qp-summary-main">
-            <!-- R5 rows: verdict as a horizontal strip, headline full width -->
-            <ng-container *ngIf="verdict as v">
-              <div class="qp-verdict-strip">
-                <span class="qp-verdict-kicker">Committee verdict</span>
-                <span class="qp-verdict-word"
-                      [class.buy]="v.recommendation === 'BUY'"
-                      [class.hold]="v.recommendation === 'HOLD'"
-                      [class.sell]="v.recommendation === 'SELL'">{{ v.recommendation }}</span>
-                <span class="qp-verdict-conviction"
-                      [class.high]="v.conviction === 'HIGH'"
-                      [class.medium]="v.conviction === 'MEDIUM'"
-                      [class.low]="v.conviction === 'LOW'">{{ v.conviction }} conviction</span>
+          <!-- Terminal verdict section (R5 rows) — approved 2026-08-16 design -->
+          <div *ngIf="verdict as v" class="tv">
+            <div class="tv-tape qp-mono">
+              <b class="tk">{{ stock.ticker }}</b><span class="mut">{{ stock.name.toUpperCase() }}</span>
+              <ng-container *ngIf="tape?.last">
+                <span class="sep"></span><span>LAST <b>{{ tape!.last }}</b> USD</span>
+                <span class="neg" *ngIf="tape!.chg">30D {{ tape!.chg }}</span>
+              </ng-container>
+              <span class="sep"></span><span>RUN {{ analysis?.run_at | date:'yyyy-MM-dd' }}</span>
+              <ng-container *ngIf="tape?.streak"><span class="sep"></span><span>{{ tape!.streak }}</span></ng-container>
+              <span class="grow"></span>
+              <span class="mut">AI RESEARCH VERDICT</span>
+              <span class="vchip" [class.buy]="v.recommendation === 'BUY'"
+                    [class.hold]="v.recommendation === 'HOLD'">{{ v.recommendation }} · {{ v.conviction }}</span>
+            </div>
+
+            <div class="tv-main" [class.no-chart]="!vhChart">
+              <div class="cell call">
+                <div class="k">THE CALL · {{ analysis?.run_at | date:'yyyy-MM-dd' }}</div>
+                <h2 class="tvh">{{ sum.headline }}</h2>
+                <div *ngIf="sum.narrative" class="nar qp-md" [innerHTML]="sum.narrative | md : stock.ticker"></div>
               </div>
-              <div *ngIf="verdictHistory.length >= 2" class="qp-verdict-history" [class.has-chart]="!!vhChart">
-                <div class="qp-vh-head">
-                  <span class="qp-vh-kicker qp-mono">{{ vhChart ? 'Calls vs price' : 'Signal history' }}</span>
-                  <span class="qp-vh-summary" *ngIf="verdictStreak > 1">
-                    {{ v.recommendation }} for {{ verdictStreak }} consecutive runs<ng-container *ngIf="streakStart"> · since {{ streakStart | date:'MMM d' }}</ng-container>
-                  </span>
-                  <span class="qp-vh-summary" *ngIf="verdictStreak === 1">
-                    Changed to {{ v.recommendation }} this run
-                  </span>
-                </div>
-                <svg *ngIf="vhChart" class="qp-vh-chart" viewBox="0 0 560 150" role="img"
-                     [attr.aria-label]="stock.ticker + ' price, last 30 sessions, with one marker per committee call'"
-                     (mousemove)="onChartMove($event)" (mouseleave)="onChartLeave()">
+              <div class="cell chart" *ngIf="vhChart">
+                <div class="k mutk">{{ stock.ticker }} · 30D · DAILY CLOSE (USD)
+                  <span class="negk" *ngIf="tape?.chg">{{ tape!.chg }}</span></div>
+                <svg viewBox="0 0 470 240" role="img"
+                     [attr.aria-label]="stock.ticker + ' daily close, 30 sessions, committee calls marked'">
                   <defs>
-                    <linearGradient id="vhFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" style="stop-color: var(--oxford)" stop-opacity="0.20"/>
-                      <stop offset="100%" style="stop-color: var(--oxford)" stop-opacity="0"/>
+                    <linearGradient id="tvf" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#0F5499" stop-opacity="0.14"/>
+                      <stop offset="100%" stop-color="#0F5499" stop-opacity="0"/>
                     </linearGradient>
                   </defs>
                   <g *ngFor="let gl of vhChart.grid">
-                    <line x1="6" [attr.x2]="506" [attr.y1]="gl.y" [attr.y2]="gl.y"
-                          stroke="var(--border)" stroke-width="1" stroke-dasharray="2 4"/>
-                    <text x="512" [attr.y]="gl.y + 3.5" class="qp-vh-gridlabel">{{ gl.label }}</text>
+                    <line x1="8" x2="428" [attr.y1]="gl.y" [attr.y2]="gl.y"
+                          stroke="#E2D6C0" stroke-width="1" stroke-dasharray="1 4"/>
+                    <text x="432" [attr.y]="gl.y + 3.5" class="ax">{{ gl.label }}</text>
                   </g>
-                  <path [attr.d]="vhChart.areaPath" fill="url(#vhFill)" stroke="none"/>
-                  <path [attr.d]="vhChart.linePath" fill="none" stroke="var(--oxford)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-                  <circle [attr.cx]="vhChart.lastX" [attr.cy]="vhChart.lastY" r="3" fill="var(--oxford)"/>
-                  <g *ngIf="chartHover">
-                    <line [attr.x1]="chartHover.x" [attr.x2]="chartHover.x" y1="8" y2="140"
-                          stroke="var(--border-strong)" stroke-width="1"/>
-                    <circle [attr.cx]="chartHover.x" [attr.cy]="chartHover.y" r="4" fill="var(--oxford)"
-                            stroke="var(--card)" stroke-width="2"/>
-                    <text [attr.x]="chartHover.anchor === 'end' ? chartHover.x - 8 : chartHover.x + 8" y="16"
-                          [attr.text-anchor]="chartHover.anchor" class="qp-vh-hoverlabel">{{ chartHover.label }}</text>
-                  </g>
+                  <path [attr.d]="vhChart.areaPath" fill="url(#tvf)"/>
+                  <path [attr.d]="vhChart.linePath" fill="none" stroke="#0F5499" stroke-width="1.8"
+                        stroke-linejoin="round" stroke-linecap="round"/>
+                  <text [attr.x]="vhChart.endLabel.x" [attr.y]="vhChart.endLabel.y" class="axb"
+                        text-anchor="end">{{ vhChart.endLabel.text }}</text>
                   <g *ngFor="let d of vhChart.dots">
-                    <circle [attr.cx]="d.x" [attr.cy]="d.y" r="5" stroke="var(--card)" stroke-width="2"
-                            [class]="'qp-vh-dot ' + d.cls"><title>{{ d.title }}</title></circle>
+                    <circle *ngIf="!d.latest" [attr.cx]="d.x" [attr.cy]="d.y" r="3.6" fill="#990F3D"
+                            stroke="#FFFDF9" stroke-width="1.4"><title>{{ d.title }}</title></circle>
+                    <g *ngIf="d.latest">
+                      <circle [attr.cx]="d.x" [attr.cy]="d.y" r="6" fill="none" stroke="#990F3D"
+                              stroke-width="2"><title>{{ d.title }}</title></circle>
+                      <circle [attr.cx]="d.x" [attr.cy]="d.y" r="2.6" fill="#990F3D"/>
+                    </g>
                   </g>
+                  <text x="8" y="232" class="ax">{{ vhChart.dateStart }}</text>
+                  <text x="432" y="232" class="ax" text-anchor="end">{{ vhChart.dateEnd }}</text>
                 </svg>
-                <div *ngIf="vhChart" class="qp-vh-dates qp-mono">
-                  <span>{{ vhChart.startDate | date:'MMM d' }}</span><span>{{ vhChart.endDate | date:'MMM d' }}</span>
-                </div>
-                <span *ngIf="!vhChart" class="qp-vh-cells">
-                  <span *ngFor="let p of verdictHistory" class="qp-vh-cell"
-                        [class.sell]="p.recommendation === 'SELL'"
-                        [class.buy]="p.recommendation === 'BUY'"
-                        [class.hold]="p.recommendation === 'HOLD'"
-                        [title]="(p.run_date | date:'mediumDate') + ' — ' + (p.recommendation || '?') + (p.conviction ? ' · ' + (p.conviction | lowercase) + ' conviction' : '')"></span>
-                </span>
+                <div class="leg qp-mono"><i class="ldot"></i> {{ v.recommendation }} RUN
+                  &nbsp;&nbsp;<i class="lring"></i> LATEST RUN {{ vhChart.dateEnd }}</div>
               </div>
-              <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
-            </ng-container>
+            </div>
 
-            <!-- Legacy rows: numeric gauge beside the headline -->
-            <div *ngIf="!verdict" class="qp-score-anchor">
+            <div class="tv-band" *ngIf="horizonRows.length || sum.bullets?.length">
+              <div class="cell" *ngIf="horizonRows.length">
+                <div class="k">HORIZONS · {{ v.recommendation === 'SELL' ? 'BEARISH' : v.recommendation === 'BUY' ? 'BULLISH' : 'BALANCED' }} THESIS</div>
+                <div *ngFor="let h of horizonRows" class="hz">
+                  <div class="hz-t qp-mono">
+                    <span>{{ h.label.toUpperCase() }} <i>{{ h.range.toUpperCase() }}</i></span>
+                    <b [class.bull]="h.stance === 'BULLISH'" [class.neu]="h.stance === 'NEUTRAL'">{{ h.stance }}</b>
+                  </div>
+                  <p>{{ h.rationale }}</p>
+                </div>
+              </div>
+              <div class="cell" *ngIf="sum.bullets?.length">
+                <div class="k">WHAT WOULD CHANGE THIS CALL</div>
+                <div class="tg">
+                  <div class="trig" *ngFor="let b of sum.bullets; let i = index">
+                    <span class="tn qp-mono">0{{ i + 1 }}</span>
+                    <p [innerHTML]="bulletHtml(b)"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div *ngFor="let ov of otherViews" class="tv-other" [class.bearside]="ov.key === 'bear'">
+              <span class="k2">THE OTHER SIDE · {{ ov.key === 'bull' ? 'BULL' : 'BEAR' }} CASE</span>
+              <p>{{ ov.text }}</p>
+            </div>
+          </div>
+
+          <!-- Legacy rows: numeric gauge beside the headline -->
+          <div *ngIf="!verdict" class="qp-summary-main">
+            <div class="qp-score-anchor">
               <div class="qp-score-anchor-gauge" *ngIf="sum.score !== undefined && sum.score !== null">
                 <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
               </div>
@@ -114,27 +135,10 @@
                 </div>
               </div>
             </div>
-
-            <!-- Committee view | The other side — the steelman against the call -->
-            <div *ngIf="otherViews.length" class="qp-tabs qp-view-tabs">
-              <button type="button" class="qp-tab" [class.active]="summaryView === 'committee'"
-                      (click)="summaryView = 'committee'">Committee view</button>
-              <button *ngFor="let v of otherViews" type="button" class="qp-tab"
-                      [class.active]="summaryView === v.key"
-                      (click)="summaryView = v.key">{{ v.label }}</button>
-            </div>
-            <div *ngIf="sum.narrative && summaryView === 'committee'" class="qp-summary-narrative qp-md"
+            <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
                  [innerHTML]="sum.narrative | md : stock.ticker"></div>
-            <ng-container *ngFor="let v of otherViews">
-              <div *ngIf="summaryView === v.key" class="qp-summary-narrative qp-other-side qp-md"
-                   [class.bull]="v.key === 'bull'" [class.bear]="v.key === 'bear'"
-                   [innerHTML]="v.text | md : stock.ticker"></div>
-            </ng-container>
           </div>
-
-          <!-- Horizons | Key risks — two columns under the narrative, so the
-               card is only as tall as its content -->
-          <div *ngIf="horizonRows.length || sum.bullets?.length" class="qp-summary-cols">
+          <div *ngIf="!verdict && (horizonRows.length || sum.bullets?.length)" class="qp-summary-cols">
             <div *ngIf="horizonRows.length">
               <div class="qp-side-kicker">Horizons</div>
               <div class="qp-horizons">
@@ -151,7 +155,7 @@
               </div>
             </div>
             <div *ngIf="sum.bullets?.length">
-              <div class="qp-side-kicker">{{ verdict ? 'What would change this call' : 'Highlights' }}</div>
+              <div class="qp-side-kicker">Highlights</div>
               <ul class="qp-summary-bullets">
                 <li *ngFor="let b of sum.bullets" [innerHTML]="bulletHtml(b)"></li>
               </ul>

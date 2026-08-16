@@ -100,11 +100,36 @@ export function cleanAnalysisSummary(summary: AnalysisSummary | null): AnalysisS
       : null;
     headline = sentence ? sentence[0].trim() : headline.replace(/\s+\S*$/, '') + '…';
   }
-  if (headline && narrative.startsWith(headline)) {
+  // narrative often opens with the headline verbatim (structurer artifact) —
+  // case-insensitive prefix match, since punctuation/dashes can differ slightly
+  if (headline && narrative.toLowerCase().startsWith(headline.slice(0, 80).toLowerCase())) {
     narrative = narrative.slice(headline.length).replace(/^[\s.\-–—]+/, '').trim();
   }
 
   return { ...summary, headline, narrative };
+}
+
+/** Last-resort repair when the structurer's §9 parse failed outright (R5
+ *  reformats its headings run-to-run; a miss leaves headline = a risk bullet
+ *  and narrative = a fragment). Re-derives the Primary thesis directly from
+ *  the stored synthesis text, tolerant of any heading markup. */
+export function repairSummaryFromR5(summary: AnalysisSummary | null, synthesis: string | null | undefined): AnalysisSummary | null {
+  if (!summary || !synthesis) return summary;
+  const nar = summary.narrative ?? '';
+  // a real thesis is prose — bullet-list markup means the parse grabbed the
+  // key-risks block instead; a near-empty narrative means it grabbed nothing
+  const junk = nar.replace(/[*#`\s.]/g, '').length < 40 || /(^|\n)\s*-\s+\*\*/.test(nar);
+  if (!junk) return summary;
+  const at = synthesis.search(/INVESTMENT DECISION/i);
+  if (at < 0) return summary;
+  const m = synthesis.slice(at).match(/Primary thesis[^\n]*\n+([\s\S]*?)(?=\n\s*#{0,6}\s*\**\s*Key risks|$)/i);
+  if (!m) return summary;
+  const thesis = m[1].replace(/[*#`]+/g, '').replace(/\s+/g, ' ').trim();
+  if (thesis.length < 60) return summary;
+  const fs = thesis.match(/^[\s\S]{40,300}?[.!?](?=\s|$)/);
+  const headline = (fs ? fs[0] : thesis.slice(0, 200).replace(/\s+\S*$/, '')).trim();
+  const narrative = thesis.slice(headline.length).replace(/^[\s.–—-]+/, '').trim();
+  return { ...summary, headline, narrative: narrative || thesis };
 }
 
 /** Display-side repair of structurer takeaways: the DS R5 structurer derives
@@ -405,7 +430,7 @@ export class SupabaseService {
         .single();
       if (error) return null;
       const row = data as StockAnalysis;
-      row.summary = cleanAnalysisSummary(row.summary);
+      row.summary = repairSummaryFromR5(cleanAnalysisSummary(row.summary), row.r5_synthesis);
       for (const key of ['political', 'price', 'macro', 'management', 'sentiment', 'competitor', 'financial'] as const) {
         row[key] = cleanSectionBlocks(row[key]);
       }
