@@ -672,7 +672,7 @@ a { color: inherit; text-decoration: none; }
 .qp-md ul, .qp-md ol { margin: 0.4em 0 0.95em; padding-left: 1.35em; }
 .qp-md li { margin: 0.3em 0; }
 .qp-md li::marker { color: var(--accent); }
-.qp-md strong { color: var(--oxford); font-weight: 600; }
+.qp-md strong { color: var(--text); font-weight: 650; }
 .qp-md em { font-style: italic; }
 .qp-md hr { border: 0; border-top: 1px solid var(--border); margin: 1.4em 0; }
 .qp-md code {
