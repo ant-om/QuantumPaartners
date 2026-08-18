@@ -420,7 +420,8 @@
 .tv .ax { font:500 9.5px var(--font-mono); fill:#8B857A; }
 .tv .axb { font:700 10.5px var(--font-mono); fill:#33302E; }
 .tv .negk { color:#990F3D; float:right; }
-.tv .axh { font:700 10.5px var(--font-mono); fill:#33302E; }
+.tv .hb { fill:#33302E; }
+.tv .hbt { font:700 9.5px var(--font-mono); fill:#FBF2E7; letter-spacing:.03em; }
 .tv-main .chart svg { cursor:crosshair; }
 .tv .rng { margin-left:12px; display:inline-flex; gap:2px; }
 .tv .rng button {

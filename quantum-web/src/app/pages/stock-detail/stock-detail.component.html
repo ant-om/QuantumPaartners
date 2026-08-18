@@ -94,12 +94,17 @@
                   <text x="8" y="232" class="ax">{{ vhChart.dateStart }}</text>
                   <text x="432" y="232" class="ax" text-anchor="end">{{ vhChart.dateEnd }}</text>
                   <g *ngIf="chartHover">
-                    <line [attr.x1]="chartHover.x" [attr.x2]="chartHover.x" y1="14" y2="214"
+                    <line [attr.x1]="chartHover.x" [attr.x2]="chartHover.x" y1="14" y2="216"
+                          stroke="#C9BCA4" stroke-width="1" stroke-dasharray="3 3"/>
+                    <line x1="8" x2="424" [attr.y1]="chartHover.y" [attr.y2]="chartHover.y"
                           stroke="#C9BCA4" stroke-width="1" stroke-dasharray="3 3"/>
                     <circle [attr.cx]="chartHover.x" [attr.cy]="chartHover.y" r="4" fill="#0F5499"
                             stroke="#FFFDF9" stroke-width="2"/>
-                    <text [attr.x]="chartHover.anchor === 'end' ? chartHover.x - 9 : chartHover.x + 9" y="26"
-                          [attr.text-anchor]="chartHover.anchor" class="axh">{{ chartHover.label }}</text>
+                    <rect x="424" [attr.y]="chartHover.y - 9" [attr.width]="chartHover.priceW" height="18" rx="3" class="hb"/>
+                    <text [attr.x]="424 + chartHover.priceW / 2" [attr.y]="chartHover.y + 3.5"
+                          text-anchor="middle" class="hbt">{{ chartHover.price }}</text>
+                    <rect [attr.x]="chartHover.dateX - 26" y="219" width="52" height="17" rx="3" class="hb"/>
+                    <text [attr.x]="chartHover.dateX" y="231" text-anchor="middle" class="hbt">{{ chartHover.date }}</text>
                   </g>
                 </svg>
                 <div class="leg qp-mono"><i class="ldot"></i> {{ v.recommendation }} RUN

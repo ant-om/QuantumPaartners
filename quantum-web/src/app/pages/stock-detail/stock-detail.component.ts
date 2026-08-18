@@ -43,7 +43,7 @@ export class StockDetailComponent implements OnInit {
   chartRange: '1M' | '3M' | '6M' | '1Y' = '1M';
   readonly chartRanges: ('1M' | '3M' | '6M' | '1Y')[] = ['1M', '3M', '6M', '1Y'];
   private fullHistory: { date: string; close: number }[] | null = null;
-  chartHover: { x: number; y: number; label: string; anchor: 'start' | 'end' } | null = null;
+  chartHover: { x: number; y: number; price: string; priceW: number; date: string; dateX: number } | null = null;
 
   private metricsCloses(): { date: string; close: number }[] {
     return this.analysis?.metrics?.price?.last_30d_close ?? [];
@@ -69,8 +69,17 @@ export class StockDetailComponent implements OnInit {
     const vx = ((e.clientX - rect.left) / rect.width) * StockDetailComponent.VH_W;
     let best = c.points[0];
     for (const p of c.points) if (Math.abs(p.x - vx) < Math.abs(best.x - vx)) best = p;
-    const label = `${StockDetailComponent.monthDay(best.date)} · $${best.close.toFixed(2)}`;
-    this.chartHover = { x: best.x, y: best.y, label, anchor: best.x > StockDetailComponent.VH_W * 0.62 ? 'end' : 'start' };
+    // Yahoo-style axis badges: price pill on the right axis at the point's
+    // height, date pill under the x axis at the point's position.
+    const price = `$${best.close.toFixed(2)}`;
+    const priceW = price.length * 6.2 + 10;
+    this.chartHover = {
+      x: best.x,
+      y: Math.min(Math.max(best.y, 23), 205),
+      price, priceW,
+      date: StockDetailComponent.monthDay(best.date),
+      dateX: Math.min(Math.max(best.x, 34), 390),
+    };
   }
 
   onChartLeave(): void {
