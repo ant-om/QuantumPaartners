@@ -57,6 +57,49 @@ async function buildSitemap(): Promise<string> {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 
+/** /api/history/:ticker — daily close history for the verdict chart's time
+ *  ranges, proxied from Stooq (no CORS on their end, so it goes through us).
+ *  Returns up to ~1 trading year of {date, close} ascending. Cached 1h/ticker. */
+const historyCache = new Map<string, { rows: { date: string; close: number }[]; at: number }>();
+
+app.get('/api/history/:ticker', async (req, res) => {
+  const ticker = String(req.params['ticker'] || '').toUpperCase().replace(/[^A-Z.]/g, '');
+  if (!ticker || ticker.length > 8) {
+    res.status(400).json({ error: 'bad ticker' });
+    return;
+  }
+  const hit = historyCache.get(ticker);
+  if (hit && Date.now() - hit.at < 60 * 60 * 1000) {
+    res.json({ ticker, rows: hit.rows });
+    return;
+  }
+  try {
+    // Yahoo v8 chart API — same source the Railway quant app reads via yfinance.
+    // (Stooq began serving a JS proof-of-work wall in Aug 2026 — not fetchable.)
+    const r = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=1y&interval=1d`,
+      { headers: { 'User-Agent': 'Mozilla/5.0' } },
+    );
+    if (!r.ok) throw new Error(String(r.status));
+    const j = await r.json() as {
+      chart?: { result?: { timestamp?: number[]; indicators?: { quote?: { close?: (number | null)[] }[] } }[] };
+    };
+    const res0 = j.chart?.result?.[0];
+    const ts = res0?.timestamp ?? [];
+    const closes = res0?.indicators?.quote?.[0]?.close ?? [];
+    const rows = ts
+      .map((t, i) => ({ date: new Date(t * 1000).toISOString().slice(0, 10), close: closes[i] as number }))
+      .filter(p => isFinite(p.close))
+      .slice(-260); // ~1 trading year
+    if (!rows.length) throw new Error('empty');
+    historyCache.set(ticker, { rows, at: Date.now() });
+    res.setHeader('Cache-Control', 'public, max-age=1800');
+    res.json({ ticker, rows });
+  } catch {
+    res.status(502).json({ error: 'history unavailable' });
+  }
+});
+
 /** /api/newsletter/latest — latest newsletter edition for the /newsletter page.
  *  Requires EDITIONS_SUPABASE_KEY in the server environment; returns 204 when
  *  unset (the page hides the section). Cached ~15 min. */

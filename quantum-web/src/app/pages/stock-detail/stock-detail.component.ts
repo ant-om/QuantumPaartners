@@ -32,10 +32,50 @@ export class StockDetailComponent implements OnInit {
     endLabel: { x: number; y: number; text: string };
     dateStart: string; dateEnd: string;
     chg: number;
+    points: { x: number; y: number; date: string; close: number }[];
   } | null = null;
 
   /** Tape strip fields — computed once per load. */
   tape: { last: string; chg: string; runDate: string; streak: string } | null = null;
+
+  /** Chart time range — 1M renders from the stored Railway series; longer
+   *  ranges lazy-fetch our /api/history proxy once and slice sessions. */
+  chartRange: '1M' | '3M' | '6M' | '1Y' = '1M';
+  readonly chartRanges: ('1M' | '3M' | '6M' | '1Y')[] = ['1M', '3M', '6M', '1Y'];
+  private fullHistory: { date: string; close: number }[] | null = null;
+  chartHover: { x: number; y: number; label: string; anchor: 'start' | 'end' } | null = null;
+
+  private metricsCloses(): { date: string; close: number }[] {
+    return this.analysis?.metrics?.price?.last_30d_close ?? [];
+  }
+
+  async setRange(r: '1M' | '3M' | '6M' | '1Y'): Promise<void> {
+    this.chartRange = r;
+    this.chartHover = null;
+    if (r === '1M') { this.buildVhChart(); return; }
+    if (!this.fullHistory && this.stock) {
+      this.fullHistory = await this.supabase.getPriceHistory(this.stock.ticker);
+    }
+    const rows = this.fullHistory ?? [];
+    if (rows.length < 10) { this.chartRange = '1M'; this.buildVhChart(); return; }
+    const n = r === '3M' ? 63 : r === '6M' ? 126 : 252;
+    this.buildVhChart(rows.slice(-n));
+  }
+
+  onChartMove(e: MouseEvent): void {
+    const c = this.vhChart;
+    if (!c || !c.points.length) return;
+    const rect = (e.currentTarget as SVGElement).getBoundingClientRect();
+    const vx = ((e.clientX - rect.left) / rect.width) * StockDetailComponent.VH_W;
+    let best = c.points[0];
+    for (const p of c.points) if (Math.abs(p.x - vx) < Math.abs(best.x - vx)) best = p;
+    const label = `${StockDetailComponent.monthDay(best.date)} · $${best.close.toFixed(2)}`;
+    this.chartHover = { x: best.x, y: best.y, label, anchor: best.x > StockDetailComponent.VH_W * 0.62 ? 'end' : 'start' };
+  }
+
+  onChartLeave(): void {
+    this.chartHover = null;
+  }
 
   private static readonly VH_W = 470;
   private static readonly VH_H = 240;
@@ -46,16 +86,16 @@ export class StockDetailComponent implements OnInit {
     return `${String(d).padStart(2, '0')} ${MONTHS[m - 1]}`;
   }
 
-  private buildVhChart(): void {
+  private buildVhChart(closesIn?: { date: string; close: number }[]): void {
     this.vhChart = null;
-    this.tape = null;
-    const closes: { date: string; close: number }[] = this.analysis?.metrics?.price?.last_30d_close ?? [];
+    const closes: { date: string; close: number }[] = closesIn ?? this.metricsCloses();
+    const metrics = this.metricsCloses();
     const vh = this.verdictHistory;
     const rec = this.verdict?.recommendation;
-    if (rec && vh.length && this.verdictStreak > 0) {
+    if (rec && vh.length && this.verdictStreak > 0 && !this.tape) {
       const streakRuns = vh.slice(vh.length - this.verdictStreak);
       this.tape = {
-        last: closes.length ? closes[closes.length - 1].close.toFixed(2) : '',
+        last: metrics.length ? metrics[metrics.length - 1].close.toFixed(2) : '',
         chg: '',
         runDate: (this.analysis?.run_at ?? '').slice(0, 10),
         streak: `${rec} ×${this.verdictStreak} CONSECUTIVE · ${StockDetailComponent.monthDay(streakRuns[0].run_date)} → ${StockDetailComponent.monthDay(streakRuns[streakRuns.length - 1].run_date)}`,
@@ -76,7 +116,7 @@ export class StockDetailComponent implements OnInit {
       for (let i = 0; i < closes.length; i++) if (closes[i].date <= p.run_date) idx = i;
       return {
         x: pts[idx].x, y: pts[idx].y, latest: k === vh.length - 1,
-        title: `${p.run_date} — ${p.recommendation || '?'}${p.conviction ? ' · ' + p.conviction.toLowerCase() + ' conviction' : ''}`,
+        title: `${p.run_date} — ${p.recommendation || '?'}${p.conviction ? ' · ' + p.conviction.toLowerCase() + ' conviction' : ''} · $${closes[idx].close.toFixed(2)}`,
       };
     });
     const grid = [hi, (hi + lo) / 2, lo].map(v => ({ y: y(v), label: `$${v.toFixed(0)}` }));
@@ -88,8 +128,11 @@ export class StockDetailComponent implements OnInit {
       dateStart: StockDetailComponent.monthDay(closes[0].date),
       dateEnd: StockDetailComponent.monthDay(last.date),
       chg,
+      points: closes.map((c, i) => ({ x: pts[i].x, y: pts[i].y, date: c.date, close: c.close })),
     };
-    if (this.tape) this.tape.chg = `${chg < 0 ? '▼' : '▲'}${Math.abs(chg).toFixed(1)}%`;
+    if (this.tape && !this.tape.chg && closesIn === undefined) {
+      this.tape.chg = `${chg < 0 ? '▼' : '▲'}${Math.abs(chg).toFixed(1)}%`;
+    }
   }
 
   /** Catmull-Rom → cubic Bézier, the standard smooth financial line. */

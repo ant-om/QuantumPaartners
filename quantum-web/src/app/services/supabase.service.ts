@@ -202,22 +202,22 @@ export function sectionCertaintyText(block: SectionBlock | null): string | null 
  *  the narrative). Null fields when the row has no R5 synthesis (legacy). */
 export function r5CaseEvaluations(synthesis: string | null | undefined): { bull: string | null; bear: string | null } {
   if (!synthesis) return { bull: null, bear: null };
-  const sections: Record<number, string> = {};
-  const re = /^###\s*(\d+)\.[^\n]*\n/gm;
-  let m: RegExpExecArray | null;
-  let prev: { n: number; end: number } | null = null;
-  while ((m = re.exec(synthesis))) {
-    if (prev) sections[prev.n] = synthesis.slice(prev.end, m.index).trim();
-    prev = { n: parseInt(m[1], 10), end: re.lastIndex };
-  }
-  if (prev) sections[prev.n] = synthesis.slice(prev.end).trim();
-  const evalPara = (sec: string | undefined): string | null => {
+  // R5's heading style drifts run-to-run ("### 6. BULL CASE", "## BULL CASE",
+  // "**6) Bull Case**"...) — locate sections by NAME, never by numbering.
+  const sectionByName = (name: string): string | null => {
+    const start = new RegExp(`(?:^|\\n)[#*\\s]*(?:\\d+[.)]?\\s*)?${name}[#*:\\s]*\\n`, 'i').exec(synthesis);
+    if (!start) return null;
+    const rest = synthesis.slice(start.index + start[0].length);
+    const next = rest.search(/\n[#*\s]*(?:\d+[.)]?\s*)?(?:SIGNAL DASHBOARD|ANALYST CONVERGENCES|ANALYST CONFLICTS|OVERALL CONVERGENCES|DOMINANT NARRATIVE|BULL CASE|BEAR CASE|UNRESOLVED GAPS|INVESTMENT DECISION)/i);
+    return (next >= 0 ? rest.slice(0, next) : rest).trim();
+  };
+  const evalPara = (sec: string | null): string | null => {
     if (!sec) return null;
     const em = sec.match(/\*{0,2}Evaluation:?\*{0,2}:?\s*\n?([\s\S]+)$/i);
-    const t = (em ? em[1] : '').trim();
+    const t = (em ? em[1] : sec).replace(/^[*#\s]+/, '').trim();
     return t.length >= 60 ? t : null;
   };
-  return { bull: evalPara(sections[6]), bear: evalPara(sections[7]) };
+  return { bull: evalPara(sectionByName('BULL CASE')), bear: evalPara(sectionByName('BEAR CASE')) };
 }
 
 /** Chain numbers a section cites as its sources ("directly from Chains 2 and 5",
@@ -469,6 +469,19 @@ export class SupabaseService {
         if (!res.ok) return [];
         return (await res.json()) as VerdictHistoryPoint[];
       });
+    } catch {
+      return [];
+    }
+  }
+
+  /** Daily close history for the verdict chart's range buttons — served by our
+   *  own /api/history proxy (Stooq-backed). Browser-only; empty on failure. */
+  async getPriceHistory(ticker: string): Promise<{ date: string; close: number }[]> {
+    try {
+      const res = await fetch(`/api/history/${encodeURIComponent(ticker.toUpperCase())}`);
+      if (!res.ok) return [];
+      const j = await res.json() as { rows?: { date: string; close: number }[] };
+      return Array.isArray(j?.rows) ? j.rows : [];
     } catch {
       return [];
     }

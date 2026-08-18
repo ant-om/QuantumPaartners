@@ -57,10 +57,15 @@
                 <div *ngIf="sum.narrative" class="nar qp-md" [innerHTML]="sum.narrative | md : stock.ticker"></div>
               </div>
               <div class="cell chart" *ngIf="vhChart">
-                <div class="k mutk">{{ stock.ticker }} · 30D · DAILY CLOSE (USD)
-                  <span class="negk" *ngIf="tape?.chg">{{ tape!.chg }}</span></div>
+                <div class="k mutk">{{ stock.ticker }} · DAILY CLOSE (USD)
+                  <span class="rng">
+                    <button *ngFor="let r of chartRanges" type="button" class="qp-mono"
+                            [class.on]="r === chartRange" (click)="setRange(r)">{{ r }}</button>
+                  </span>
+                  <span class="negk">{{ vhChart.chg < 0 ? '▼' : '▲' }}{{ vhChart.chg < 0 ? (-vhChart.chg).toFixed(1) : vhChart.chg.toFixed(1) }}%</span></div>
                 <svg viewBox="0 0 470 240" role="img"
-                     [attr.aria-label]="stock.ticker + ' daily close, 30 sessions, committee calls marked'">
+                     [attr.aria-label]="stock.ticker + ' daily close with committee calls marked'"
+                     (mousemove)="onChartMove($event)" (mouseleave)="onChartLeave()">
                   <defs>
                     <linearGradient id="tvf" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stop-color="#0F5499" stop-opacity="0.14"/>
@@ -88,6 +93,14 @@
                   </g>
                   <text x="8" y="232" class="ax">{{ vhChart.dateStart }}</text>
                   <text x="432" y="232" class="ax" text-anchor="end">{{ vhChart.dateEnd }}</text>
+                  <g *ngIf="chartHover">
+                    <line [attr.x1]="chartHover.x" [attr.x2]="chartHover.x" y1="14" y2="214"
+                          stroke="#C9BCA4" stroke-width="1" stroke-dasharray="3 3"/>
+                    <circle [attr.cx]="chartHover.x" [attr.cy]="chartHover.y" r="4" fill="#0F5499"
+                            stroke="#FFFDF9" stroke-width="2"/>
+                    <text [attr.x]="chartHover.anchor === 'end' ? chartHover.x - 9 : chartHover.x + 9" y="26"
+                          [attr.text-anchor]="chartHover.anchor" class="axh">{{ chartHover.label }}</text>
+                  </g>
                 </svg>
                 <div class="leg qp-mono"><i class="ldot"></i> {{ v.recommendation }} RUN
                   &nbsp;&nbsp;<i class="lring"></i> LATEST RUN {{ vhChart.dateEnd }}</div>
