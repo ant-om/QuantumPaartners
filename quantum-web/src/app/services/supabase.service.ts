@@ -481,7 +481,7 @@ export class SupabaseService {
       const res = await fetch(`/api/history/${encodeURIComponent(ticker.toUpperCase())}`);
       if (!res.ok) return [];
       const j = await res.json() as { rows?: { date: string; close: number }[] };
-      return Array.isArray(j?.rows) ? j.rows : [];
+      return (Array.isArray(j?.rows) ? j.rows : []).filter(r => Number.isFinite(r?.close) && r.close > 0);
     } catch {
       return [];
     }

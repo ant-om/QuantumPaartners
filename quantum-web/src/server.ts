@@ -89,7 +89,7 @@ app.get('/api/history/:ticker', async (req, res) => {
     const closes = res0?.indicators?.quote?.[0]?.close ?? [];
     const rows = ts
       .map((t, i) => ({ date: new Date(t * 1000).toISOString().slice(0, 10), close: closes[i] as number }))
-      .filter(p => isFinite(p.close))
+      .filter(p => Number.isFinite(p.close) && p.close > 0) // strict: Yahoo appends the live session as close:null
       .slice(-260); // ~1 trading year
     if (!rows.length) throw new Error('empty');
     historyCache.set(ticker, { rows, at: Date.now() });
