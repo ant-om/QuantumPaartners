@@ -22,7 +22,9 @@ import { AnalysisChartsComponent } from './components/analysis-charts/analysis-c
 import { BlockScoreBarsComponent } from './components/block-score-bars/block-score-bars.component';
 import { TickerTapeComponent } from './components/ticker-tape/ticker-tape.component';
 import { RevealDirective } from './directives/reveal.directive';
+import { ReferencesComponent } from './components/references/references.component';
 import { MdPipe } from './pipes/md.pipe';
+import { CitePipe } from './pipes/cite.pipe';
 
 @NgModule({
   declarations: [
@@ -43,8 +45,10 @@ import { MdPipe } from './pipes/md.pipe';
     AnalysisChartsComponent,
     BlockScoreBarsComponent,
     TickerTapeComponent,
+    ReferencesComponent,
     RevealDirective,
     MdPipe,
+    CitePipe,
   ],
   imports: [
     BrowserModule,

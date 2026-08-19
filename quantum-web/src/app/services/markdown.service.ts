@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Marked } from 'marked';
 import { FACTOR_LINK_TERMS, FactorLinkTerm } from '../models/factors';
+import { CitationIndex, annotateCitations } from './citations';
 
 /** Options for one render() call. */
 export interface MdRenderOptions {
@@ -8,6 +9,8 @@ export interface MdRenderOptions {
   ticker?: string;
   /** Factor slug of the page being rendered — a factor never links to itself. */
   currentFactor?: string;
+  /** Page-wide citation numbering. Absent/empty → tags render as today. */
+  citations?: CitationIndex | null;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -18,6 +21,10 @@ export interface MdRenderOptions {
  *       (gap chips, factor links) or what marked generates from markdown.
  *       This is the invariant that makes bypassSecurityTrustHtml safe.
  *   (b) [GAP: ...] tags → inline chips (inner text already escaped by (a)).
+ *   (b2) [SEN-12]-style citation tags → superscript markers. Runs here, before
+ *       the parser, for the same reason as (b): no attributes exist yet, so a
+ *       tag can never be rewritten inside one. Hrefs come only from the refs
+ *       map (see services/citations.ts), never from model text.
  *   (c) marked (gfm, no breaks; v12+ adds no heading ids by default).
  *   (d) headings demoted via walkTokens: h1-h3 → h4, h4+ → h5 (page owns h1-h3).
  *   (e) tables wrapped for horizontal scroll; javascript:/data: hrefs from
@@ -63,7 +70,7 @@ function postProcess(html: string): string {
  * inside links, code, headings, table headers or gap chips are skipped
  * (marked emits no <span> of its own — every span is one of our chips). */
 
-const LINKIFY_SKIP_TAGS = new Set(['a', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'th', 'span']);
+const LINKIFY_SKIP_TAGS = new Set(['a', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'th', 'span', 'sup']);
 
 function linkifyFactors(html: string, ticker: string, currentFactor?: string): string {
   const terms = FACTOR_LINK_TERMS.filter(t => t.slug !== currentFactor);
@@ -137,7 +144,7 @@ export function renderAnalysisMarkdown(text: string | null | undefined, options:
   if (text === null || text === undefined) return '';
   const raw = String(text);
   if (!raw.trim()) return '';
-  const src = markGapTags(escapeHtml(raw));
+  const src = annotateCitations(markGapTags(escapeHtml(raw)), options.citations);
   let html = markedInstance.parse(src, { async: false }) as string;
   html = postProcess(html);
   if (options.ticker) {

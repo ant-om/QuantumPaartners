@@ -35,7 +35,7 @@
     <!-- Structured analysis blocks -->
     <app-analysis-section *ngIf="blocks?.length"
                           [key]="factor.key" label="Analysis" [blocks]="blocks"
-                          [ticker]="stock.ticker"></app-analysis-section>
+                          [ticker]="stock.ticker" [citations]="citations"></app-analysis-section>
 
     <!-- Price & VIX line charts — moved here from the stock overview page -->
     <div *ngIf="metricsPlacement === 'price'" class="qp-section">
@@ -63,21 +63,26 @@
         <p *ngIf="!chain" class="qp-nodata-inline">No reasoning chain is stored for this factor yet.</p>
 
         <div *ngIf="chain?.raw" class="qp-chain-a qp-md"
-             [innerHTML]="chain!.raw | md : stock.ticker : factor.slug"></div>
+             [innerHTML]="chain!.raw | md : stock.ticker : factor.slug : citations"></div>
 
         <div *ngFor="let step of chain?.qa; let i = index" class="qp-chain-step" [attr.id]="'chain-' + (i + 1)">
           <h3 class="qp-chain-q">{{ chainTopics ? chainTopics[i] : 'Step ' + (i + 1) }}</h3>
           <div *ngIf="showProvenance(step, i)" class="qp-chain-provenance qp-mono">{{ step.label }}</div>
           <div class="qp-chain-a qp-md"
-               [innerHTML]="step.text | md : stock.ticker : factor.slug"></div>
+               [innerHTML]="step.text | md : stock.ticker : factor.slug : citations"></div>
         </div>
 
         <div *ngIf="chain?.conclusion" class="qp-chain-conclusion" id="conclusion">
           <h3 class="qp-chain-q">Conclusion</h3>
           <div class="qp-chain-a qp-md"
-               [innerHTML]="chain!.conclusion | md : stock.ticker : factor.slug"></div>
+               [innerHTML]="chain!.conclusion | md : stock.ticker : factor.slug : citations"></div>
         </div>
       </ng-container>
+    </div>
+
+    <!-- Sources cited inline on this page -->
+    <div *ngIf="citations.entries.length" class="qp-section">
+      <app-references [citations]="citations"></app-references>
     </div>
 
     <!-- Prev / next factor -->

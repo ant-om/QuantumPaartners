@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { SectionBlock } from '../../services/supabase.service';
+import { CitationIndex } from '../../services/citations';
 
 /** Renders one analysis section (e.g. "Macroeconomic Environment") as a stack
  *  of cards — one per SectionBlock. Replaces the old single text blob. */
@@ -20,9 +21,10 @@ import { SectionBlock } from '../../services/supabase.service';
                                [score]="b.score" [size]="48"></app-score-gauge>
             </div>
           </div>
-          <p *ngIf="b.takeaway" class="qp-card-takeaway">{{ b.takeaway }}</p>
+          <p *ngIf="b.takeaway" class="qp-card-takeaway"
+             [innerHTML]="b.takeaway | cite : citations"></p>
           <div *ngIf="b.body" class="qp-card-body qp-md"
-               [innerHTML]="b.body | md : ticker : key"></div>
+               [innerHTML]="b.body | md : ticker : key : citations"></div>
           <ul *ngIf="b.bullets && b.bullets.length" class="qp-card-bullets">
             <li *ngFor="let pt of b.bullets">{{ pt }}</li>
           </ul>
@@ -62,4 +64,7 @@ export class AnalysisSectionComponent {
    *  current-factor slug (key === slug for all 7 factors) so a section
    *  never links to itself. Empty ticker → markdown render only. */
   @Input() ticker = '';
+  /** Page-wide citation numbering (owned by the page component). Null → the
+   *  bodies render exactly as they did before citations existed. */
+  @Input() citations: CitationIndex | null = null;
 }

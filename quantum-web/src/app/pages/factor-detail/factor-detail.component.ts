@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, FactorChain } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
+import { CitationIndex, CitationRefMap, EMPTY_CITATION_INDEX, buildCitationIndex } from '../../services/citations';
 import { CHAIN_TOPICS, FactorDef, FactorDisplay, factorBySlug, factorDisplay, prevNextFactor } from '../../models/factors';
 
 /** /stock/:ticker/:factor — one factor's full analysis + the round-4 Q&A
@@ -25,6 +26,13 @@ export class FactorDetailComponent implements OnInit {
   next: FactorDef | null = null;
   loading = true;
   notFound = false;
+
+  /** Inline-citation numbering for this page. Built from the analysis blocks
+   *  first, then rebuilt once the lazily-fetched reasoning chain lands. The
+   *  block text is the PREFIX of the full text list, so the rebuild only ever
+   *  appends — numbers already on screen keep their values. */
+  citations: CitationIndex = EMPTY_CITATION_INDEX;
+  private citationRefs: CitationRefMap = {};
 
   constructor(
     private route: ActivatedRoute,
@@ -51,6 +59,7 @@ export class FactorDetailComponent implements OnInit {
     this.chain = null;
     this.chainTopics = null;
     this.chainLoading = true;
+    this.citations = EMPTY_CITATION_INDEX;
 
     const factor = factorBySlug(slug);
     if (!factor) {
@@ -75,6 +84,10 @@ export class FactorDetailComponent implements OnInit {
     }
 
     this.display = factorDisplay(this.blocks);
+    // Citations are optional: getCitationRefs returns {} on any failure, and an
+    // empty index makes every citation render path a no-op.
+    this.citationRefs = await this.supabase.getCitationRefs(this.stock.ticker, this.analysis?.run_at ?? null);
+    this.citations = buildCitationIndex(this.citationTexts(), this.citationRefs);
     this.loading = false;
 
     this.seo.set({
@@ -97,7 +110,21 @@ export class FactorDetailComponent implements OnInit {
     this.chain = await this.supabase.getFactorChain(this.stock.id, factor.module);
     this.chainTopics = this.resolveChainTopics(factor.module, this.chain);
     this.chainLoading = false;
+    // Re-number now that the chain's prose is in hand. Append-only (see the
+    // `citations` field note), so nothing already rendered changes number.
+    this.citations = buildCitationIndex(this.citationTexts(), this.citationRefs);
     this.scrollToFragment();
+  }
+
+  /** This page's model prose in DOM order: the analysis blocks, then the
+   *  reasoning chain. Feeds the citation numbering. */
+  private citationTexts(): (string | null | undefined)[] {
+    const texts: (string | null | undefined)[] = [];
+    for (const b of this.blocks ?? []) texts.push(b.takeaway, b.body);
+    texts.push(this.chain?.raw);
+    for (const step of this.chain?.qa ?? []) texts.push(step.text);
+    texts.push(this.chain?.conclusion);
+    return texts;
   }
 
   /** Chain-citation links from the stock page target #chain-N anchors, but the

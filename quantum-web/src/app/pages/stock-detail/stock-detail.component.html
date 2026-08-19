@@ -53,8 +53,8 @@
             <div class="tv-main" [class.no-chart]="!vhChart">
               <div class="cell call">
                 <div class="k">THE CALL · {{ analysis?.run_at | date:'yyyy-MM-dd' }}</div>
-                <h2 class="tvh">{{ sum.headline }}</h2>
-                <div *ngIf="sum.narrative" class="nar qp-md" [innerHTML]="sum.narrative | md : stock.ticker"></div>
+                <h2 class="tvh" [innerHTML]="sum.headline | cite : citations"></h2>
+                <div *ngIf="sum.narrative" class="nar qp-md" [innerHTML]="sum.narrative | md : stock.ticker : '' : citations"></div>
               </div>
               <div class="cell chart" *ngIf="vhChart">
                 <div class="k mutk">{{ stock.ticker }} · DAILY CLOSE (USD)
@@ -120,7 +120,7 @@
                     <span>{{ h.label.toUpperCase() }} <i>{{ h.range.toUpperCase() }}</i></span>
                     <b [class.bull]="h.stance === 'BULLISH'" [class.neu]="h.stance === 'NEUTRAL'">{{ h.stance }}</b>
                   </div>
-                  <p>{{ h.rationale }}</p>
+                  <p [innerHTML]="h.rationale | cite : citations"></p>
                 </div>
               </div>
               <div class="cell" *ngIf="sum.bullets?.length">
@@ -136,7 +136,7 @@
 
             <div *ngFor="let ov of otherViews" class="tv-other" [class.bearside]="ov.key === 'bear'">
               <span class="k2">THE OTHER SIDE · {{ ov.key === 'bull' ? 'BULL' : 'BEAR' }} CASE</span>
-              <p>{{ ov.text }}</p>
+              <p [innerHTML]="ov.text | cite : citations"></p>
             </div>
           </div>
 
@@ -147,14 +147,15 @@
                 <app-score-gauge [score]="sum.score" label="AI Score" [size]="96"></app-score-gauge>
               </div>
               <div class="qp-summary-head">
-                <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120">{{ sum.headline }}</h2>
+                <h2 class="qp-summary-headline" [class.long]="sum.headline.length > 120"
+                    [innerHTML]="sum.headline | cite : citations"></h2>
                 <div class="qp-summary-meta">
                   <app-sentiment-chip [sentiment]="sum.overall_sentiment"></app-sentiment-chip>
                 </div>
               </div>
             </div>
             <div *ngIf="sum.narrative" class="qp-summary-narrative qp-md"
-                 [innerHTML]="sum.narrative | md : stock.ticker"></div>
+                 [innerHTML]="sum.narrative | md : stock.ticker : '' : citations"></div>
           </div>
           <div *ngIf="!verdict && (horizonRows.length || sum.bullets?.length)" class="qp-summary-cols">
             <div *ngIf="horizonRows.length">
@@ -168,7 +169,7 @@
                        [class.bullish]="h.stance === 'BULLISH'"
                        [class.bearish]="h.stance === 'BEARISH'"
                        [class.neutral]="h.stance === 'NEUTRAL'">{{ h.stance }}</div>
-                  <div class="qp-horizon-rationale">{{ h.rationale }}</div>
+                  <div class="qp-horizon-rationale" [innerHTML]="h.rationale | cite : citations"></div>
                 </div>
               </div>
             </div>
@@ -224,7 +225,7 @@
                         <span>Certainty</span><span *ngIf="t.certainty !== null">{{ t.certainty }}/100</span>
                       </div>
                       <span *ngIf="t.certainty !== null" class="qp-pop-track"><span class="qp-pop-fill" [style.width.%]="t.certainty"></span></span>
-                      <p *ngIf="t.certaintyText" class="qp-pop-text">{{ t.certaintyText }}</p>
+                      <p *ngIf="t.certaintyText" class="qp-pop-text" [innerHTML]="t.certaintyText | cite : citations"></p>
                       <p *ngIf="!t.certaintyText" class="qp-pop-text qp-pop-none">The committee did not provide a certainty explanation for this section.</p>
                     </div>
                   </div>
@@ -232,9 +233,9 @@
                 </div>
                 <div class="qp-takeaway-body">
                   <b>{{ t.heading }}</b>
-                  <div class="qp-takeaway-text">{{ t.takeaway }}</div>
+                  <div class="qp-takeaway-text" [innerHTML]="t.takeaway | cite : citations"></div>
                   <div *ngIf="t.insight" class="qp-takeaway-insight qp-md"
-                       [innerHTML]="t.insight | md : stock.ticker : f.slug"></div>
+                       [innerHTML]="t.insight | md : stock.ticker : f.slug : citations"></div>
                   <div *ngIf="t.refs.length" class="qp-chain-refs">
                     <span class="qp-refs-label qp-mono">Sources</span>
                     <a *ngFor="let r of t.refs" class="qp-chain-ref qp-mono"
@@ -246,6 +247,11 @@
             </ul>
           </div>
         </ng-container>
+      </div>
+
+      <!-- Sources cited inline across the page -->
+      <div *ngIf="citations.entries.length" appReveal class="qp-section">
+        <app-references [citations]="citations"></app-references>
       </div>
 
       <div *ngIf="!analysis" class="qp-loading" style="padding:60px 0">

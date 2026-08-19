@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionCertaintyText, r5CaseEvaluations, VerdictHistoryPoint } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
+import { CitationIndex, EMPTY_CITATION_INDEX, annotateCitations, buildCitationIndex } from '../../services/citations';
 import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
 @Component({
@@ -160,6 +161,12 @@ export class StockDetailComponent implements OnInit {
   notFound = false;
   aboutOpen = false;
 
+  /** Inline-citation numbering for this page. Computed ONCE per load, before
+   *  first render, so numbers never shuffle mid-render (and never trip
+   *  ExpressionChangedAfterItHasBeenChecked). Empty index = zero citations
+   *  anywhere, and the page renders exactly as it did before. */
+  citations: CitationIndex = EMPTY_CITATION_INDEX;
+
   /** Per-factor conclusion sentiment for the section-header chips — computed once per load. */
   factorSentiments: Record<string, Sentiment | undefined> = {};
 
@@ -202,12 +209,14 @@ export class StockDetailComponent implements OnInit {
   }
 
   /** Risk bullets carry a bold lead phrase as markdown — render the bold,
-   *  never the literal asterisks. Escaped first, so only our <b> survives. */
+   *  never the literal asterisks. Escaped first, so only our <b> and the
+   *  citation markers survive. */
   bulletHtml(b: string): string {
-    return b
+    const html = b
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
       .replace(/[*_`]+/g, '');
+    return annotateCitations(html, this.citations);
   }
 
   /** Horizon strip rows (Short / Medium / Long), skipping absent horizons.
@@ -233,8 +242,30 @@ export class StockDetailComponent implements OnInit {
     if (this.analysis) {
       if (this.history.length >= 2) toc.push({ key: 'charts', label: 'Score evolution' });
       toc.push({ key: 'factors', label: 'The seven factors' });
+      if (this.citations.entries.length) toc.push({ key: 'references', label: 'References' });
     }
     return toc;
+  }
+
+  /** Every piece of model prose on this page, in DOM order — the input to the
+   *  citation numbering, which is by first appearance. Includes ALL factor
+   *  tabs, not just the open one: numbers must not shuffle when a reader
+   *  switches tabs, and the References list is the whole page's. */
+  private citationTexts(): (string | null | undefined)[] {
+    const texts: (string | null | undefined)[] = [];
+    const sum = this.analysis?.summary;
+    if (sum) {
+      texts.push(sum.headline, sum.narrative);
+      for (const h of this.horizonRows) texts.push(h.rationale);
+      for (const b of sum.bullets ?? []) texts.push(b);
+      for (const ov of this.otherViews) texts.push(ov.text);
+    }
+    for (const f of this.presentFactors) {
+      for (const t of this.takeaways(f.key)) {
+        texts.push(t.certaintyText, t.takeaway, t.insight);
+      }
+    }
+    return texts;
   }
 
   constructor(
@@ -259,6 +290,12 @@ export class StockDetailComponent implements OnInit {
     for (const f of this.factors) this.factorSentiments[f.key] = factorDisplay(this.blocks(f.key)).sentiment;
     this.presentFactors = this.factors.filter(f => this.takeaways(f.key).length);
     this.activeFactorKey = this.presentFactors[0]?.key ?? '';
+    // Citations are optional: getCitationRefs returns {} on any failure, and an
+    // empty index makes every render path below a no-op.
+    this.citations = buildCitationIndex(
+      this.citationTexts(),
+      await this.supabase.getCitationRefs(this.stock.ticker, this.analysis?.run_at ?? null),
+    );
     this.loading = false;
     this.seo.set({
       title: `${this.stock.ticker} Stock Analysis & AI Score — ${this.stock.name}`,

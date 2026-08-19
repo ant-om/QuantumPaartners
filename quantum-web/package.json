@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "serve:ssr:quantum-web": "node dist/quantum-web/server/server.mjs"
+    "serve:ssr:quantum-web": "node dist/quantum-web/server/server.mjs",
+    "test:citations": "node tools/citations.test.mjs"
   },
   "private": true,
   "dependencies": {
