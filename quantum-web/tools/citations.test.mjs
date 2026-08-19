@@ -29,7 +29,7 @@ try {
 
 const {
   buildCitationIndex, annotateCitations, renderCitedText, mergeCitationRows,
-  EMPTY_CITATION_INDEX, safeUrl,
+  EMPTY_CITATION_INDEX, safeUrl, citationRunDateKey,
 } = await import(pathToFileURL(bundle).href);
 
 let passed = 0;
@@ -156,6 +156,22 @@ test('reference line fields match the spec: source — url, as of {as_of} ({type
     [1, 'Tesla 10-Q Q2 2026', 'https://www.sec.gov/Archives/tsla-10q.htm',
      'sec.gov/Archives/tsla-10q.htm', '2026-07-23', 'filed', '10-Q'],
   );
+});
+
+test('run-date key: the analysis run_at maps to its OWN citation_refs.run_date', () => {
+  // exactly what PostgREST returns for stock_analyses.run_at (timestamptz),
+  // and exactly what citation_refs.run_date holds for that same run
+  assert.equal(citationRunDateKey('2026-08-19T00:00:00+00:00'), '2026-08-19');
+  assert.equal(citationRunDateKey('2026-08-19T00:00:00Z'), '2026-08-19');
+  assert.equal(citationRunDateKey('2026-08-19'), '2026-08-19');
+  // a UTC-midnight run must NOT be dragged into the previous day by tz maths
+  assert.equal(citationRunDateKey('2026-08-19T00:00:00.123456+00:00'), '2026-08-19');
+  // a non-UTC offset is converted to UTC, not truncated
+  assert.equal(citationRunDateKey('2026-08-19T01:00:00+02:00'), '2026-08-18');
+  // no date → null → the caller must return {} rather than guess a day
+  assert.equal(citationRunDateKey(null), null);
+  assert.equal(citationRunDateKey(''), null);
+  assert.equal(citationRunDateKey('latest'), null);
 });
 
 /* ── runner ───────────────────────────────────────────────────────────── */

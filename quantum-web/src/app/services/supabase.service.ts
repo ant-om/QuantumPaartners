@@ -2,7 +2,7 @@ import { Inject, Injectable, PLATFORM_ID, PendingTasks, TransferState, makeState
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
-import { CitationRefMap, mergeCitationRows } from './citations';
+import { CitationRefMap, citationRunDateKey, mergeCitationRows } from './citations';
 
 export interface Stock {
   id: string;
@@ -475,57 +475,54 @@ export class SupabaseService {
     }
   }
 
-  /** Inline-citation sources for a ticker's latest run, merged across all
-   *  modules into one tag → source map (`{"SEN-12": {source, url, …}}`).
+  /** Inline-citation sources for ONE analysis run, merged across all modules
+   *  into one tag → source map (`{"SEN-12": {source, url, …}}`).
    *
    *  Rows live in the archive project's `citation_refs` (public read), one row
-   *  per module per run_date. `preferRunDate` (the analysis row's own run date)
-   *  is tried first so the citations match the prose on screen; when that day
-   *  has no rows yet — the pipeline writes them asynchronously — we fall back
-   *  to the newest run_date that does. Empty map on ANY failure: the page then
-   *  renders exactly as it did before citations existed. */
-  async getCitationRefs(ticker: string, preferRunDate?: string | null): Promise<CitationRefMap> {
+   *  per module per run_date. `runAt` is the run date of the very analysis row
+   *  being rendered, and the lookup is an EXACT date match on it — never "the
+   *  newest refs we have". Tags are minted per run, so `[SEN-12]` from the 19th
+   *  and `[SEN-12]` from the 20th point at different sources; pairing prose
+   *  with another day's refs would attach a source to a claim it never
+   *  supported. No rows for this run's own date → {} → every tag renders
+   *  unresolved (grey, unlinked), which is the honest outcome. Empty map on ANY
+   *  failure too: the page then renders exactly as it did before citations
+   *  existed. */
+  async getCitationRefs(ticker: string, runAt?: string | null): Promise<CitationRefMap> {
     const t = ticker.toUpperCase();
-    const day = (preferRunDate ?? '').slice(0, 10);
+    const day = citationRunDateKey(runAt);
+    if (!day) return {};
     try {
-      return await this.cached(`cites:${t}:${day}`, async () => {
-        const rows = day ? await this.fetchCitationRows(t, day) : null;
-        if (rows && rows.length) return mergeCitationRows(rows);
-        const latest = await this.latestCitationRunDate(t);
-        if (!latest || latest === day) return {};
-        return mergeCitationRows(await this.fetchCitationRows(t, latest));
-      });
+      return await this.cached(`cites:${t}:${day}`, async () =>
+        mergeCitationRows(await this.fetchCitationRows(t, day)));
     } catch {
       return {};
     }
   }
 
-  private async citationRest(query: string): Promise<unknown[] | null> {
-    const res = await fetch(`${environment.archiveSupabaseUrl}/rest/v1/citation_refs?${query}`, {
-      headers: {
-        apikey: environment.archiveAnonKey,
-        Authorization: `Bearer ${environment.archiveAnonKey}`,
-      },
-    });
-    if (!res.ok) return null;
-    const json: unknown = await res.json();
-    return Array.isArray(json) ? json : null;
-  }
-
-  private async latestCitationRunDate(ticker: string): Promise<string | null> {
-    const rows = await this.citationRest(
-      `select=run_date&ticker=eq.${encodeURIComponent(ticker)}&order=run_date.desc&limit=1`,
-    );
-    const d = (rows?.[0] as { run_date?: unknown } | undefined)?.run_date;
-    return typeof d === 'string' ? d.slice(0, 10) : null;
-  }
-
   private async fetchCitationRows(ticker: string, runDate: string): Promise<unknown[]> {
-    const rows = await this.citationRest(
-      `select=module,refs&ticker=eq.${encodeURIComponent(ticker)}` +
-      `&run_date=eq.${encodeURIComponent(runDate)}`,
-    );
-    return rows ?? [];
+    const url = `${environment.archiveSupabaseUrl}/rest/v1/citation_refs` +
+      `?select=module,refs&ticker=eq.${encodeURIComponent(ticker)}` +
+      `&run_date=eq.${encodeURIComponent(runDate)}`;
+    // Citations are decoration on top of prose that must paint regardless: cap
+    // the wait (same shape as QuotesService) so a hung archive degrades to
+    // no-citations instead of holding up first paint / SSR stability.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      const res = await fetch(url, {
+        signal: ctrl.signal,
+        headers: {
+          apikey: environment.archiveAnonKey,
+          Authorization: `Bearer ${environment.archiveAnonKey}`,
+        },
+      });
+      if (!res.ok) return [];
+      const json: unknown = await res.json();
+      return Array.isArray(json) ? json : [];
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   /** Daily close history for the verdict chart's range buttons — served by our

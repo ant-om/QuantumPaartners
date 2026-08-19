@@ -78,6 +78,31 @@ function str(v: unknown): string | null {
   return null;
 }
 
+/**
+ * UTC date key (`YYYY-MM-DD`) used to pair an analysis with its OWN run's refs.
+ *
+ * Citation tags are minted per run: `[SEN-12]` on the 19th and `[SEN-12]` on
+ * the 20th are DIFFERENT sources. So the refs lookup is an exact date match on
+ * the analysis row's `run_at` — never "the newest refs we have". An
+ * unparseable value returns null, which callers must treat as "no refs", not
+ * as an invitation to guess a day.
+ *
+ * `stock_analyses.run_at` is a timestamptz; PostgREST renders it with an
+ * explicit offset (`2026-08-19T00:00:00+00:00`) and `citation_refs.run_date`
+ * is the plain date written for that same run, so the comparison is date-only
+ * in UTC. A bare or UTC-stamped date is taken literally (no timezone maths
+ * that could shift the day); only a non-UTC offset is converted.
+ */
+export function citationRunDateKey(value: unknown): string | null {
+  const t = str(value);
+  if (!t) return null;
+  const m = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)\s*(Z|[+-]\d{2}:?\d{2})?)?$/i.exec(t);
+  if (!m) return null;
+  if (!m[2] || !m[3] || /^(Z|\+00:?00)$/i.test(m[3])) return m[1];
+  const ms = Date.parse(t);
+  return Number.isFinite(ms) ? new Date(ms).toISOString().slice(0, 10) : null;
+}
+
 /** Only absolute http(s) URLs are ever usable as an href. */
 export function safeUrl(v: unknown): string | null {
   const t = str(v);
