@@ -80,9 +80,9 @@
       </ng-container>
     </div>
 
-    <!-- Sources cited inline on this page -->
-    <div *ngIf="citations.entries.length" class="qp-section">
-      <app-references [citations]="citations"></app-references>
+    <!-- Sources cited by the prose on screen -->
+    <div *ngIf="visibleReferences.length" class="qp-section">
+      <app-references [entries]="visibleReferences"></app-references>
     </div>
 
     <!-- Prev / next factor -->

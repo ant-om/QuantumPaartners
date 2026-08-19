@@ -217,6 +217,36 @@ export function buildCitationIndex(
   return entries.length ? { numbers, entries } : EMPTY_CITATION_INDEX;
 }
 
+/**
+ * The entries actually cited by `texts`, in reference order, each keeping its
+ * page-wide number.
+ *
+ * Numbering is global on purpose — it is built from ALL of a page's prose so a
+ * number never reshuffles when the reader opens a factor tab. The References
+ * LIST, though, must show only what the reader can see: a page whose tagged
+ * prose is still behind a closed tab would otherwise print an orphan
+ * bibliography of sources cited nowhere on screen. Feed this the texts that
+ * are currently in the DOM; feed `annotateCitations` the full index.
+ */
+export function citedEntries(
+  index: CitationIndex | null | undefined,
+  texts: readonly (string | null | undefined)[],
+): CitationEntry[] {
+  const idx = index ?? EMPTY_CITATION_INDEX;
+  if (!idx.entries.length) return [];
+  const shown = new Set<number>();
+  for (const text of texts) {
+    if (typeof text !== 'string' || !text) continue;
+    const re = citationTagRe();
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const n = idx.numbers[`${m[1]}-${m[2]}`.toUpperCase()];
+      if (n !== undefined) shown.add(n);
+    }
+  }
+  return idx.entries.filter(e => shown.has(e.n));
+}
+
 /* ── Rendering ──────────────────────────────────────────────────────────── */
 
 /** Attribute-safe escape (quotes included — escapeHtml in MarkdownService
@@ -248,8 +278,17 @@ function markerTitle(entry: CitationEntry): string {
  * no attributes exist yet, so a tag can never land inside one.
  *
  * Resolved   → `<sup class="qp-cite"><a href="#qp-ref-N">[N]</a></sup>`
- * Unresolved → `<sup class="qp-cite qp-cite-unresolved" title="unverified
- *               source">[?]</sup>` — muted, never a link, claim text intact.
+ * Unresolved → `<span class="qp-cite-unresolved" title="unverified source">
+ *               [US-EU]</span>` — the writer's OWN bracket text, muted, never
+ *               a link.
+ *
+ * The unresolved branch must never replace what was written. This grammar also
+ * matches ordinary prose — `[US-EU]`, `[FY-2025]`, `[Q3-2026]` — and a bare
+ * `[?]` would silently destroy it. Keeping the literal is better in both
+ * directions: real prose survives intact, and a model-minted pseudo-tag
+ * (`[RB-Apr]`, `[LRN-CA]`) stays legible and diagnosable instead of collapsing
+ * into an anonymous question mark. It is deliberately NOT superscripted
+ * either: a raised `[FY-2025]` would misrepresent prose as a reference marker.
  */
 export function annotateCitations(text: string, index: CitationIndex | null | undefined): string {
   if (!text) return text;
@@ -261,8 +300,8 @@ export function annotateCitations(text: string, index: CitationIndex | null | un
     const n = idx.numbers[tag.toUpperCase()];
     const entry = n === undefined ? undefined : byNumber.get(n);
     if (!entry) {
-      return `<sup class="qp-cite qp-cite-unresolved" title="unverified source"` +
-        ` data-tag="${escapeAttr(tag)}">[?]</sup>`;
+      return `<span class="qp-cite-unresolved" title="unverified source"` +
+        ` data-tag="${escapeAttr(tag)}">[${escapeAttr(tag)}]</span>`;
     }
     return `<sup class="qp-cite"><a href="#${CITATION_ANCHOR_PREFIX}${entry.n}"` +
       ` class="qp-cite-link" title="${escapeAttr(markerTitle(entry))}"` +

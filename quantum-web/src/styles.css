@@ -761,11 +761,14 @@ a { color: inherit; text-decoration: none; }
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-/* A tag with no entry in the refs map: visible, muted, and NEVER a link —
-   the claim keeps its text, the reader keeps the warning. */
+/* A tag with no entry in the refs map keeps the writer's OWN bracket text
+   ([US-EU], [RB-Apr]) — muted, never a link, never superscripted: the grammar
+   also matches ordinary prose, so this must read as the text it replaced,
+   only quieter. */
 .qp-cite-unresolved {
   color: var(--text-muted);
   cursor: help;
+  white-space: nowrap;
 }
 /* Headlines carry markers too — keep them off the display face's rhythm */
 h1 .qp-cite, h2 .qp-cite, h3 .qp-cite { font-size: 0.45em; }

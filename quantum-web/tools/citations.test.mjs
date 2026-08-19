@@ -29,7 +29,7 @@ try {
 
 const {
   buildCitationIndex, annotateCitations, renderCitedText, mergeCitationRows,
-  EMPTY_CITATION_INDEX, safeUrl, citationRunDateKey,
+  EMPTY_CITATION_INDEX, safeUrl, citationRunDateKey, citedEntries,
 } = await import(pathToFileURL(bundle).href);
 
 let passed = 0;
@@ -99,9 +99,57 @@ test('unresolved tag: no number, muted marker, no link, claim text intact', () =
   assert.equal(idx.entries.length, 1, 'an unknown tag never creates a reference');
   const html = annotateCitations('Claim A [SEN-12]. Claim B [ZZZ-99].', idx);
   assert.match(html, /Claim A <sup class="qp-cite"><a href="#qp-ref-1"/);
-  assert.match(html, /Claim B <sup class="qp-cite qp-cite-unresolved" title="unverified source"/);
+  assert.match(html, /Claim B <span class="qp-cite-unresolved" title="unverified source"/);
   assert.ok(!/href="#qp-ref-undefined"/.test(html), 'never a dead link');
   assert.ok(html.includes('Claim A ') && html.includes('Claim B '), 'claim text survives');
+});
+
+test('ordinary bracketed prose survives verbatim — [US-EU] is never turned into [?]', () => {
+  // the grammar cannot tell a citation from prose, so an unresolved match MUST
+  // keep the literal the writer typed
+  const src = 'The [US-EU] deal lands in [FY-2025], not [Q3-2026].';
+  const idx = buildCitationIndex([src], REFS);
+  assert.equal(idx.entries.length, 0, 'prose brackets never create references');
+  const html = annotateCitations(src, idx);
+  assert.ok(!html.includes('[?]'), 'no anonymous question mark ever replaces text');
+  // these two match the grammar → muted span, but keep their own text
+  for (const literal of ['[US-EU]', '[FY-2025]']) {
+    assert.ok(html.includes(`>${literal}</span>`), `${literal} survives as its own text`);
+  }
+  // [Q3-2026] never matched the grammar in the first place — untouched
+  assert.ok(html.includes(' not [Q3-2026].'), '[Q3-2026] is left completely alone');
+  assert.equal(
+    html.replace(/<[^>]+>/g, ''), src,
+    'stripping our markup returns the original sentence, character for character',
+  );
+  assert.ok(!html.includes('<sup'), 'prose is not raised into a reference marker');
+});
+
+test('a model-minted pseudo-tag stays legible: muted, its own text, never a link', () => {
+  const src = 'Per [RB-Apr] and [SEN-12], …';
+  const html = annotateCitations(src, buildCitationIndex([src], REFS));
+  assert.match(html, /<span class="qp-cite-unresolved" title="unverified source" data-tag="RB-Apr">\[RB-Apr\]<\/span>/);
+  assert.ok(!/<a[^>]*>\[RB-Apr\]/.test(html), 'an unverified source is never a link');
+  // …while the resolved one still gets its number
+  assert.match(html, /<sup class="qp-cite"><a href="#qp-ref-1"[^>]*>\[1\]<\/a><\/sup>/);
+});
+
+test('References list shows only the entries cited by prose that is on screen', () => {
+  // page-wide numbering: 1 = filing (summary), 2 = wire (tab one), 3 = CPI (tab two)
+  const all = ['Summary cites [FS-Q10].', 'Tab one cites [SEN-12].', 'Tab two cites [MAC-F6].'];
+  const idx = buildCitationIndex(all, REFS);
+  assert.deepEqual(idx.entries.map(e => e.n), [1, 2, 3]);
+
+  assert.deepEqual(citedEntries(idx, [all[0], all[1]]).map(e => e.n), [1, 2],
+    'the closed tab’s source is not listed');
+  assert.deepEqual(citedEntries(idx, [all[0], all[2]]).map(e => e.n), [1, 3],
+    'numbers do NOT reshuffle when the reader switches tabs');
+  assert.deepEqual(citedEntries(idx, ['no tags here']), [],
+    'nothing cited on screen → no orphan bibliography');
+  assert.deepEqual(citedEntries(idx, ['Only [ZZZ-99] here']), [],
+    'an unresolved tag never lists a source');
+  assert.deepEqual(citedEntries(EMPTY_CITATION_INDEX, all), []);
+  assert.deepEqual(citedEntries(null, all), []);
 });
 
 test('every occurrence of a numbered tag is replaced, tags are case-normalised', () => {

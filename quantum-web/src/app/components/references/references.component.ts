@@ -1,22 +1,26 @@
 import { Component, Input } from '@angular/core';
-import { CITATION_ANCHOR_PREFIX, CitationIndex } from '../../services/citations';
+import { CITATION_ANCHOR_PREFIX, CitationEntry } from '../../services/citations';
 
 /** The page's References list — the landing target for every inline `[n]`
- *  marker. One entry per SOURCE (a url cited by several tags appears once),
- *  numbered by first appearance. Renders nothing when the page has no
- *  resolvable citations, so pages without them look exactly as before. */
+ *  marker. One entry per SOURCE (a url cited by several tags appears once).
+ *
+ *  `entries` is the page's VISIBLE citations (see citedEntries): numbers stay
+ *  page-wide so they never reshuffle when a tab opens, but a source cited only
+ *  by prose behind a closed tab is not listed — no orphan bibliography.
+ *  Renders nothing when there are none, so pages without citations look
+ *  exactly as before. */
 @Component({
   selector: 'app-references',
   standalone: false,
   template: `
-    <div *ngIf="citations && citations.entries.length" id="section-references" class="qp-references">
+    <div *ngIf="entries && entries.length" id="section-references" class="qp-references">
       <h2 class="qp-section-heading">References</h2>
       <p class="qp-references-note">
         Sources cited inline above, numbered by first appearance. Links open the
         original document.
       </p>
       <ol class="qp-ref-list">
-        <li *ngFor="let e of citations.entries" class="qp-ref-item" [id]="anchor(e.n)">
+        <li *ngFor="let e of entries" class="qp-ref-item" [id]="anchor(e.n)">
           <span class="qp-ref-n qp-mono">{{ e.n }}.</span><!--
        --><span class="qp-ref-text"><span class="qp-ref-source">{{ e.source }}</span><ng-container
               *ngIf="e.url"> — <a class="qp-ref-url" [href]="e.url" target="_blank"
@@ -49,7 +53,7 @@ import { CITATION_ANCHOR_PREFIX, CitationIndex } from '../../services/citations'
   `],
 })
 export class ReferencesComponent {
-  @Input() citations: CitationIndex | null = null;
+  @Input() entries: CitationEntry[] | null = null;
 
   anchor(n: number): string {
     return `${CITATION_ANCHOR_PREFIX}${n}`;

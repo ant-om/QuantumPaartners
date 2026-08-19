@@ -249,9 +249,9 @@
         </ng-container>
       </div>
 
-      <!-- Sources cited inline across the page -->
-      <div *ngIf="citations.entries.length" appReveal class="qp-section">
-        <app-references [citations]="citations"></app-references>
+      <!-- Sources cited by the prose on screen (summary + the open factor tab) -->
+      <div *ngIf="visibleReferences.length" appReveal class="qp-section">
+        <app-references [entries]="visibleReferences"></app-references>
       </div>
 
       <div *ngIf="!analysis" class="qp-loading" style="padding:60px 0">

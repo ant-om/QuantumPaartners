@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, FactorChain } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
-import { CitationIndex, CitationRefMap, EMPTY_CITATION_INDEX, buildCitationIndex } from '../../services/citations';
+import { CitationEntry, CitationIndex, CitationRefMap, EMPTY_CITATION_INDEX, buildCitationIndex, citedEntries } from '../../services/citations';
 import { CHAIN_TOPICS, FactorDef, FactorDisplay, factorBySlug, factorDisplay, prevNextFactor } from '../../models/factors';
 
 /** /stock/:ticker/:factor — one factor's full analysis + the round-4 Q&A
@@ -32,6 +32,11 @@ export class FactorDetailComponent implements OnInit {
    *  block text is the PREFIX of the full text list, so the rebuild only ever
    *  appends — numbers already on screen keep their values. */
   citations: CitationIndex = EMPTY_CITATION_INDEX;
+  /** The References list: the entries cited by prose actually rendered here.
+   *  Everything this page indexes IS on screen (blocks, then the chain once it
+   *  lands), so this tracks `citations.entries` — but it is derived the same
+   *  way as the stock page, so a source can never be listed without a marker. */
+  visibleReferences: CitationEntry[] = [];
   private citationRefs: CitationRefMap = {};
 
   constructor(
@@ -60,6 +65,7 @@ export class FactorDetailComponent implements OnInit {
     this.chainTopics = null;
     this.chainLoading = true;
     this.citations = EMPTY_CITATION_INDEX;
+    this.visibleReferences = [];
 
     const factor = factorBySlug(slug);
     if (!factor) {
@@ -87,7 +93,7 @@ export class FactorDetailComponent implements OnInit {
     // Citations are optional: getCitationRefs returns {} on any failure, and an
     // empty index makes every citation render path a no-op.
     this.citationRefs = await this.supabase.getCitationRefs(this.stock.ticker, this.analysis?.run_at ?? null);
-    this.citations = buildCitationIndex(this.citationTexts(), this.citationRefs);
+    this.rebuildCitations();
     this.loading = false;
 
     this.seo.set({
@@ -112,8 +118,14 @@ export class FactorDetailComponent implements OnInit {
     this.chainLoading = false;
     // Re-number now that the chain's prose is in hand. Append-only (see the
     // `citations` field note), so nothing already rendered changes number.
-    this.citations = buildCitationIndex(this.citationTexts(), this.citationRefs);
+    this.rebuildCitations();
     this.scrollToFragment();
+  }
+
+  private rebuildCitations(): void {
+    const texts = this.citationTexts();
+    this.citations = buildCitationIndex(texts, this.citationRefs);
+    this.visibleReferences = citedEntries(this.citations, texts);
   }
 
   /** This page's model prose in DOM order: the analysis blocks, then the

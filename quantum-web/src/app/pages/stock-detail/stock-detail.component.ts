@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionCertaintyText, r5CaseEvaluations, VerdictHistoryPoint } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
-import { CitationIndex, EMPTY_CITATION_INDEX, annotateCitations, buildCitationIndex } from '../../services/citations';
+import { CitationEntry, CitationIndex, EMPTY_CITATION_INDEX, annotateCitations, buildCitationIndex, citedEntries } from '../../services/citations';
 import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
 
 @Component({
@@ -167,6 +167,10 @@ export class StockDetailComponent implements OnInit {
    *  anywhere, and the page renders exactly as it did before. */
   citations: CitationIndex = EMPTY_CITATION_INDEX;
 
+  /** The References list: the subset of `citations.entries` cited by prose
+   *  actually on screen (summary + open tab), keeping page-wide numbers. */
+  visibleReferences: CitationEntry[] = [];
+
   /** Per-factor conclusion sentiment for the section-header chips — computed once per load. */
   factorSentiments: Record<string, Sentiment | undefined> = {};
 
@@ -242,16 +246,22 @@ export class StockDetailComponent implements OnInit {
     if (this.analysis) {
       if (this.history.length >= 2) toc.push({ key: 'charts', label: 'Score evolution' });
       toc.push({ key: 'factors', label: 'The seven factors' });
-      if (this.citations.entries.length) toc.push({ key: 'references', label: 'References' });
+      if (this.visibleReferences.length) toc.push({ key: 'references', label: 'References' });
     }
     return toc;
   }
 
-  /** Every piece of model prose on this page, in DOM order — the input to the
-   *  citation numbering, which is by first appearance. Includes ALL factor
-   *  tabs, not just the open one: numbers must not shuffle when a reader
-   *  switches tabs, and the References list is the whole page's. */
+  /** Every piece of model prose on this page — the input to the citation
+   *  numbering, which is by first appearance. Includes ALL factor tabs, not
+   *  just the open one: numbers must not shuffle when a reader switches tabs. */
   private citationTexts(): (string | null | undefined)[] {
+    const texts = this.summaryTexts();
+    for (const f of this.presentFactors) texts.push(...this.factorTexts(f.key));
+    return texts;
+  }
+
+  /** The summary block's prose — always in the DOM. */
+  private summaryTexts(): (string | null | undefined)[] {
     const texts: (string | null | undefined)[] = [];
     const sum = this.analysis?.summary;
     if (sum) {
@@ -260,12 +270,26 @@ export class StockDetailComponent implements OnInit {
       for (const b of sum.bullets ?? []) texts.push(b);
       for (const ov of this.otherViews) texts.push(ov.text);
     }
-    for (const f of this.presentFactors) {
-      for (const t of this.takeaways(f.key)) {
-        texts.push(t.certaintyText, t.takeaway, t.insight);
-      }
-    }
     return texts;
+  }
+
+  /** One factor tab's prose. Only the OPEN tab is in the DOM (see the *ngIf on
+   *  the tab panel), which is what the References list is scoped to. */
+  private factorTexts(key: string): (string | null | undefined)[] {
+    const texts: (string | null | undefined)[] = [];
+    for (const t of this.takeaways(key)) texts.push(t.certaintyText, t.takeaway, t.insight);
+    return texts;
+  }
+
+  /** References for what is on screen right now: the summary plus the OPEN
+   *  factor tab, each entry keeping its page-wide number. Recomputed on load
+   *  and on every tab switch (not a getter — change detection stays cheap and
+   *  the *ngFor identity stays stable). */
+  private refreshVisibleReferences(): void {
+    this.visibleReferences = citedEntries(
+      this.citations,
+      [...this.summaryTexts(), ...this.factorTexts(this.activeFactorKey)],
+    );
   }
 
   constructor(
@@ -296,6 +320,7 @@ export class StockDetailComponent implements OnInit {
       this.citationTexts(),
       await this.supabase.getCitationRefs(this.stock.ticker, this.analysis?.run_at ?? null),
     );
+    this.refreshVisibleReferences();
     this.loading = false;
     this.seo.set({
       title: `${this.stock.ticker} Stock Analysis & AI Score — ${this.stock.name}`,
@@ -366,6 +391,8 @@ export class StockDetailComponent implements OnInit {
 
   setTab(key: string) {
     this.activeFactorKey = key;
+    // the open tab is the page's visible prose — its sources are the list
+    this.refreshVisibleReferences();
   }
 
   goHome() {
