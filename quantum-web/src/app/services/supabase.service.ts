@@ -378,22 +378,51 @@ export class SupabaseService {
     return this.client;
   }
 
+  /** Browser-side memo for `cached()` reads, keyed exactly like the
+   *  TransferState key. This CACHES a read, it never substitutes one: a key
+   *  already carries the ticker and (for citations) the run date, so a hit is
+   *  by construction the same query the miss would have made.
+   *
+   *  Why it has to exist: TransferState is a one-shot SSR→hydration handoff.
+   *  Without a memo, every client-side navigation re-queried from scratch, so
+   *  the reader who arrived on an SSR-rendered page and then clicked through to
+   *  a factor page was one failed request away from losing that page's
+   *  citations entirely — the tags degrade to muted literals and the References
+   *  list disappears, silently, while the page they came from still showed
+   *  them. Empty on the server: SSR must read fresh for every request. */
+  private readonly browserCache = new Map<string, Promise<unknown>>();
+
   /** SSR → hydration handoff: the server stores each read in TransferState so
-   *  the browser's first render reuses it instead of re-querying Supabase.
+   *  the browser's first render reuses it instead of re-querying Supabase, and
+   *  `browserCache` then keeps it for the rest of the session (see above).
    *  PendingTasks holds SSR stability open during the fetch — supabase-js uses
    *  Node's native fetch, which zone.js cannot track (renders would race). */
   private async cached<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
     const stateKey = makeStateKey<T>(`sb:${key}`);
-    if (this.isBrowser && this.transferState.hasKey(stateKey)) {
-      const value = this.transferState.get(stateKey, null as T);
-      this.transferState.remove(stateKey); // later navigations fetch fresh
-      return value;
+    if (this.isBrowser) {
+      if (this.transferState.hasKey(stateKey)) {
+        const value = this.transferState.get(stateKey, null as T);
+        this.transferState.remove(stateKey); // Angular clears it after hydration anyway
+        this.browserCache.set(key, Promise.resolve(value));
+        return value;
+      }
+      const hit = this.browserCache.get(key) as Promise<T> | undefined;
+      if (hit) return hit; // also collapses concurrent callers onto one request
     }
     const done = this.pendingTasks.add();
-    try {
+    const run = (async () => {
       const value = await fetcher();
       if (this.isServer) this.transferState.set(stateKey, value);
       return value;
+    })();
+    if (this.isBrowser) {
+      this.browserCache.set(key, run);
+      // A FAILURE is never memoised — one bad moment must not disable a read
+      // for the rest of the session. The next navigation retries.
+      run.catch(() => { if (this.browserCache.get(key) === run) this.browserCache.delete(key); });
+    }
+    try {
+      return await run;
     } finally {
       done();
     }
@@ -506,9 +535,12 @@ export class SupabaseService {
       `&run_date=eq.${encodeURIComponent(runDate)}`;
     // Citations are decoration on top of prose that must paint regardless: cap
     // the wait (same shape as QuotesService) so a hung archive degrades to
-    // no-citations instead of holding up first paint / SSR stability.
+    // no-citations instead of holding up first paint / SSR stability. Only SSR
+    // is on that critical path, though — in the browser the prose is already on
+    // screen and the markers are additive, so a 5s cap there bought nothing and
+    // cost a whole page of citations on a cold or throttled connection.
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const timer = setTimeout(() => ctrl.abort(), this.isServer ? 5000 : 15000);
     try {
       const res = await fetch(url, {
         signal: ctrl.signal,
@@ -517,7 +549,11 @@ export class SupabaseService {
           Authorization: `Bearer ${environment.archiveAnonKey}`,
         },
       });
-      if (!res.ok) return [];
+      // An empty array means "this run genuinely has no refs rows" and is a
+      // real answer worth caching. A 4xx/5xx is NOT — throw, so `cached` drops
+      // it and the next navigation retries instead of the session being stuck
+      // on a phantom "this run has no sources".
+      if (!res.ok) throw new Error(`citation_refs ${res.status}`);
       const json: unknown = await res.json();
       return Array.isArray(json) ? json : [];
     } finally {

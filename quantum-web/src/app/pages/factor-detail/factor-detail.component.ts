@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { skip } from 'rxjs/operators';
 import { SupabaseService, Stock, StockAnalysis, SectionBlock, FactorChain } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { CitationEntry, CitationIndex, CitationRefMap, EMPTY_CITATION_INDEX, buildCitationIndex, citedEntries } from '../../services/citations';
@@ -39,6 +40,14 @@ export class FactorDetailComponent implements OnInit {
   visibleReferences: CitationEntry[] = [];
   private citationRefs: CitationRefMap = {};
 
+  /** Guards interleaved loads. The router REUSES this component across
+   *  /stock/:ticker/:factor navigations, so clicking prev/next twice in quick
+   *  succession starts a second `load()` while the first is still awaiting its
+   *  refs and chain. Without this the slower one lands last and paints the
+   *  previous factor's chain — and its citation index — over the current
+   *  route. Every await below is followed by a staleness check. */
+  private loadToken = 0;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -47,18 +56,21 @@ export class FactorDetailComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    let first = true;
-    // subscribe (not just snapshot): prev/next links navigate within this component
-    this.route.paramMap.subscribe(pm => {
-      if (first) return; // initial load is awaited below so SSR waits for it
+    // subscribe (not just snapshot): prev/next links navigate within this
+    // component. paramMap replays its current value synchronously on subscribe,
+    // and `skip(1)` drops exactly that replay — the snapshot load below covers
+    // it. A boolean latch cleared after the await would instead swallow any
+    // real param change that landed DURING the initial load.
+    this.route.paramMap.pipe(skip(1)).subscribe(pm => {
       void this.load(pm.get('ticker') ?? '', pm.get('factor'));
     });
     const pm = this.route.snapshot.paramMap;
-    await this.load(pm.get('ticker') ?? '', pm.get('factor'));
-    first = false;
+    await this.load(pm.get('ticker') ?? '', pm.get('factor')); // awaited so SSR waits for it
   }
 
   private async load(ticker: string, slug: string | null): Promise<void> {
+    const token = ++this.loadToken;
+    const superseded = () => token !== this.loadToken;
     this.loading = true;
     this.notFound = false;
     this.chain = null;
@@ -79,8 +91,12 @@ export class FactorDetailComponent implements OnInit {
     this.next = pn.next;
 
     if (this.stock?.ticker !== ticker.toUpperCase()) {
-      this.stock = await this.supabase.getStockByTicker(ticker);
-      this.analysis = this.stock ? await this.supabase.getAnalysis(this.stock.id) : null;
+      const stock = await this.supabase.getStockByTicker(ticker);
+      if (superseded()) return;
+      const analysis = stock ? await this.supabase.getAnalysis(stock.id) : null;
+      if (superseded()) return;
+      this.stock = stock;
+      this.analysis = analysis;
     }
     if (!this.stock) {
       this.notFound = true;
@@ -92,7 +108,9 @@ export class FactorDetailComponent implements OnInit {
     this.display = factorDisplay(this.blocks);
     // Citations are optional: getCitationRefs returns {} on any failure, and an
     // empty index makes every citation render path a no-op.
-    this.citationRefs = await this.supabase.getCitationRefs(this.stock.ticker, this.analysis?.run_at ?? null);
+    const refs = await this.supabase.getCitationRefs(this.stock.ticker, this.analysis?.run_at ?? null);
+    if (superseded()) return;
+    this.citationRefs = refs;
     this.rebuildCitations();
     this.loading = false;
 
@@ -113,7 +131,9 @@ export class FactorDetailComponent implements OnInit {
     });
 
     // Round-4 chain is fetched lazily — it is NOT part of getAnalysis
-    this.chain = await this.supabase.getFactorChain(this.stock.id, factor.module);
+    const chain = await this.supabase.getFactorChain(this.stock.id, factor.module);
+    if (superseded()) return;
+    this.chain = chain;
     this.chainTopics = this.resolveChainTopics(factor.module, this.chain);
     this.chainLoading = false;
     // Re-number now that the chain's prose is in hand. Append-only (see the
@@ -132,7 +152,12 @@ export class FactorDetailComponent implements OnInit {
    *  reasoning chain. Feeds the citation numbering. */
   private citationTexts(): (string | null | undefined)[] {
     const texts: (string | null | undefined)[] = [];
-    for (const b of this.blocks ?? []) texts.push(b.takeaway, b.body);
+    // takeaway → body → bullets is the order analysis-section renders them in,
+    // and first-appearance numbering is defined by DOM order.
+    for (const b of this.blocks ?? []) {
+      texts.push(b.takeaway, b.body);
+      for (const pt of b.bullets ?? []) texts.push(pt);
+    }
     texts.push(this.chain?.raw);
     for (const step of this.chain?.qa ?? []) texts.push(step.text);
     texts.push(this.chain?.conclusion);

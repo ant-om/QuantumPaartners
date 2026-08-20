@@ -25,8 +25,12 @@ import { CitationIndex } from '../../services/citations';
              [innerHTML]="b.takeaway | cite : citations"></p>
           <div *ngIf="b.body" class="qp-card-body qp-md"
                [innerHTML]="b.body | md : ticker : key : citations"></div>
+          <!-- bullets go through the cite pipe like every other piece of model
+               prose: it escapes first, so a tag can never become live HTML, and
+               a bullet's [MGM-4] gets the same marker it would get in the body
+               instead of sitting there as a raw bracket the reader can't use. -->
           <ul *ngIf="b.bullets && b.bullets.length" class="qp-card-bullets">
-            <li *ngFor="let pt of b.bullets">{{ pt }}</li>
+            <li *ngFor="let pt of b.bullets" [innerHTML]="pt | cite : citations"></li>
           </ul>
         </div>
       </ng-container>
