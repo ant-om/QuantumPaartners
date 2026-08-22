@@ -30,7 +30,11 @@ try {
 const {
   buildCitationIndex, annotateCitations, renderCitedText, mergeCitationRows,
   EMPTY_CITATION_INDEX, safeUrl, citationRunDateKey, citedEntries,
+  CITATION_RUN_MAX,
 } = await import(pathToFileURL(bundle).href);
+
+/** The reference numbers a rendered string shows, in order: ['1','1','2']. */
+const markerNumbers = html => [...html.matchAll(/<sup class="qp-cite">.*?>\[(\d+)\]<\/a><\/sup>/g)].map(m => m[1]);
 
 let passed = 0;
 const tests = [];
@@ -220,6 +224,135 @@ test('run-date key: the analysis run_at maps to its OWN citation_refs.run_date',
   assert.equal(citationRunDateKey(null), null);
   assert.equal(citationRunDateKey(''), null);
   assert.equal(citationRunDateKey('latest'), null);
+});
+
+/* ── marker runs: duplicates collapse, pile-ups are capped ─────────────── */
+
+// Adjacent-marker fixtures. MGT-4 and MGT-45 are two chunks of ONE proxy
+// statement (the live management-page bug: 46 of 59 runs repeated a number);
+// POL-31 is the same tag written twice by the model.
+const RUN_REFS = mergeCitationRows([{ refs: {
+  'MGT-4':  { source: 'Tesla DEF 14A 2026', url: 'https://www.sec.gov/def14a.htm', as_of: '2026-04-30', type: 'DEF 14A' },
+  'MGT-45': { source: 'Tesla DEF 14A 2026 (comp table)', url: 'https://www.sec.gov/def14a.htm#comp', as_of: '2026-04-30', type: 'DEF 14A' },
+  'POL-31': { source: 'Quiver — lobbying', url: 'https://www.quiverquant.com/lobbying/TSLA', as_of: '2026-05-02', type: 'lobbying' },
+  'POL-32': { source: 'OpenSecrets', url: 'https://www.opensecrets.org/orgs/tesla', as_of: '2026-05-02', type: 'lobbying' },
+  'POL-33': { source: 'Senate LDA filing', url: 'https://lda.senate.gov/filing/1', as_of: '2026-04-20', type: 'filing' },
+} }]);
+// MGT-4 and MGT-45 differ only by a #fragment → normalizeUrl collapses them
+// into ONE entry, which is exactly cause (a): different tags, same reference.
+
+test('run: two tags that resolve to the SAME reference render ONE marker', () => {
+  const src = 'Pay rose sharply [MGT-4][MGT-45].';
+  const idx = buildCitationIndex([src], RUN_REFS);
+  assert.equal(idx.entries.length, 1, 'one proxy statement = one reference');
+  const html = annotateCitations(src, idx);
+  assert.deepEqual(markerNumbers(html), ['1'], 'the reader sees [1], never [1][1]');
+  // the reference itself still credits BOTH tags, and is still listed
+  assert.deepEqual(idx.entries[0].tags, ['MGT-4', 'MGT-45']);
+  assert.deepEqual(citedEntries(idx, [src]).map(e => e.n), [1]);
+  assert.ok(html.startsWith('Pay rose sharply <sup') && html.endsWith('</sup>.'),
+    'the surrounding sentence is untouched');
+});
+
+test('run: the SAME tag written twice collapses to one marker', () => {
+  const src = 'Lobbying spend climbed [POL-31][POL-31].';
+  const idx = buildCitationIndex([src], RUN_REFS);
+  assert.deepEqual(markerNumbers(annotateCitations(src, idx)), ['1']);
+});
+
+test('run: a dropped marker takes its separator with it — no stranded comma', () => {
+  const src = 'Spend climbed [POL-31], [POL-31] again.';
+  const idx = buildCitationIndex([src], RUN_REFS);
+  const html = annotateCitations(src, idx);
+  assert.deepEqual(markerNumbers(html), ['1']);
+  assert.equal(html.replace(/<[^>]+>/g, ''), 'Spend climbed [1] again.');
+});
+
+test('run: distinct markers keep their own separator when nothing is dropped', () => {
+  const src = 'Both agree [POL-31], [POL-32].';
+  const idx = buildCitationIndex([src], RUN_REFS);
+  const html = annotateCitations(src, idx);
+  assert.deepEqual(markerNumbers(html), ['1', '2']);
+  assert.equal(html.replace(/<[^>]+>/g, ''), 'Both agree [1], [2].');
+});
+
+test('run of 19 markers is capped at CITATION_RUN_MAX, every source still listed', () => {
+  // 19 tags, 6 distinct sources, MAC-R1 repeated 11× — the worst live shape.
+  const refs = mergeCitationRows([{ refs: Object.fromEntries(
+    ['R1', 'F17', 'F44', 'F47', 'F53', 'F61'].map(k =>
+      [`MAC-${k}`, { source: `FRED ${k}`, url: `https://fred.stlouisfed.org/series/${k}`, as_of: '2026-08-01', type: 'series' }]),
+  ) }]);
+  const tags = [
+    'MAC-R1', 'MAC-R1', 'MAC-F17', 'MAC-R1', 'MAC-F44', 'MAC-R1', 'MAC-R1',
+    'MAC-F47', 'MAC-R1', 'MAC-R1', 'MAC-F53', 'MAC-R1', 'MAC-R1', 'MAC-F61',
+    'MAC-R1', 'MAC-R1', 'MAC-R1', 'MAC-R1', 'MAC-R1',
+  ];
+  assert.equal(tags.length, 19);
+  const src = `Rates stayed restrictive ${tags.map(t => `[${t}]`).join('')} through the quarter.`;
+  const idx = buildCitationIndex([src], refs);
+  assert.equal(idx.entries.length, 6, 'all six sources are numbered');
+
+  const html = annotateCitations(src, idx);
+  const shown = markerNumbers(html);
+  assert.equal(shown.length, CITATION_RUN_MAX, `19 markers become ${CITATION_RUN_MAX}`);
+  assert.deepEqual(shown, ['1', '2', '3'], 'the FIRST distinct three, in the order written');
+  assert.equal(html.replace(/<[^>]+>/g, ''), 'Rates stayed restrictive [1][2][3] through the quarter.',
+    'the prose around the run is byte-identical');
+
+  // nothing silently disappears: the dropped numbers are on the last kept
+  // marker, and the References list still carries all six sources
+  assert.match(html, /data-more="4,5,6"/);
+  assert.deepEqual(citedEntries(idx, [src]).map(e => e.n), [1, 2, 3, 4, 5, 6],
+    'every source in the run is still in the References list');
+  assert.ok(!/href="#qp-ref-[456]"/.test(html), 'the capped markers are gone from the prose');
+});
+
+test('run: capping counts DISTINCT references, not raw markers', () => {
+  const src = '[POL-31][POL-31][POL-32][POL-32][POL-33][POL-33]';
+  const idx = buildCitationIndex([src], RUN_REFS);
+  const html = annotateCitations(src, idx);
+  assert.deepEqual(markerNumbers(html), ['1', '2', '3'], 'six markers, three references, none capped away');
+  assert.ok(!html.includes('data-more='), 'nothing was dropped by the cap');
+});
+
+test('a single marker is rendered exactly as before — no collapse machinery leaks', () => {
+  const src = 'Revenue beat [SEN-12] on the quarter.';
+  const idx = buildCitationIndex([src], REFS);
+  const html = annotateCitations(src, idx);
+  assert.equal(
+    html,
+    'Revenue beat <sup class="qp-cite"><a href="#qp-ref-1" class="qp-cite-link"' +
+    ' title="Reuters — as of 2026-08-14 (news)" data-tag="SEN-12">[1]</a></sup> on the quarter.',
+  );
+  assert.ok(!html.includes('data-more='), 'no extra attribute on an uncollapsed marker');
+});
+
+test('markers separated by real words or a table pipe are NOT one run', () => {
+  const idx = buildCitationIndex(['[POL-31] x [POL-31]'], RUN_REFS);
+  assert.deepEqual(markerNumbers(annotateCitations('[POL-31] x [POL-31]', idx)), ['1', '1'],
+    'prose between them means they are not adjacent on screen');
+  // a markdown table column of the same tag must keep one marker per cell
+  const row = '| CPI [POL-31] | PPI [POL-31] |';
+  assert.deepEqual(markerNumbers(annotateCitations(row, idx)), ['1', '1']);
+  // a blank line is a paragraph break — never a run
+  assert.deepEqual(markerNumbers(annotateCitations('[POL-31]\n\n[POL-31]', idx)), ['1', '1']);
+  // …but a single wrapped line IS the same sentence to the reader
+  assert.deepEqual(markerNumbers(annotateCitations('[POL-31]\n[POL-31]', idx)), ['1']);
+});
+
+test('an unresolved tag breaks a run and is never collapsed away', () => {
+  const src = 'Claim [POL-31][ZZ-9][POL-31] holds.';
+  const idx = buildCitationIndex([src], RUN_REFS);
+  const html = annotateCitations(src, idx);
+  assert.deepEqual(markerNumbers(html), ['1', '1'], 'the muted literal sits between them');
+  assert.equal(html.replace(/<[^>]+>/g, ''), 'Claim [1][ZZ-9][1] holds.',
+    'the unresolved tag keeps its own text');
+});
+
+test('collapsing survives the markdown path and renderCitedText alike', () => {
+  const src = 'Pay rose [MGT-4][MGT-45].';
+  const idx = buildCitationIndex([src], RUN_REFS);
+  assert.deepEqual(markerNumbers(renderCitedText(src, idx)), ['1']);
 });
 
 /* ── runner ───────────────────────────────────────────────────────────── */

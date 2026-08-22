@@ -56,6 +56,18 @@ export const EMPTY_CITATION_INDEX: CitationIndex = { numbers: {}, entries: [] };
 /** Anchor id prefix for the References list items (`id="qp-ref-3"`). */
 export const CITATION_ANCHOR_PREFIX = 'qp-ref-';
 
+/**
+ * How many DISTINCT references one uninterrupted run of markers may show.
+ *
+ * The chains habitually stack every tag that touched a claim onto its full
+ * stop — the live TSLA political page carries a twelve-marker pile-up
+ * (`[PQ-L31][PQ-L32][PQ-L9]…`) and the management page repeats a reference in
+ * 46 of its 59 runs. Past about three the markers stop being citations and
+ * become a wall the eye skips, so a run is truncated to its first few and the
+ * rest stay reachable in the References list (see annotateCitations).
+ */
+export const CITATION_RUN_MAX = 3;
+
 /** Fresh matcher per call — a shared /g regex carries `lastIndex` between
  *  calls and would silently skip tags. */
 export function citationTagRe(): RegExp {
@@ -269,6 +281,79 @@ function markerTitle(entry: CitationEntry): string {
   return title;
 }
 
+/** True when everything between two tags is marker glue: spaces, tabs, at most
+ *  one line break, and the stray comma some chains write between tags.
+ *
+ *  Anything else — a word, a markdown table's `|`, a blank line — means the two
+ *  markers are not visually adjacent to the reader, so they are NOT one run and
+ *  neither is collapsed against the other. That is what keeps a table column of
+ *  `[MAC-R1]` cells, or two consecutive list items, intact. */
+function isMarkerGap(gap: string): boolean {
+  return /^[ \t\u00a0,;]*(?:\r?\n)?[ \t\u00a0,;]*$/.test(gap);
+}
+
+/** One `[XXX-n]` occurrence found in the source text. `entry` is undefined for
+ *  an unresolved tag — those are never grouped and never dropped. */
+interface TagHit {
+  start: number;
+  end: number;
+  tag: string;
+  entry: CitationEntry | undefined;
+}
+
+function unresolvedMarker(tag: string): string {
+  return `<span class="qp-cite-unresolved" title="unverified source"` +
+    ` data-tag="${escapeAttr(tag)}">[${escapeAttr(tag)}]</span>`;
+}
+
+/** `more` = reference numbers the cap removed from this run; they are recorded
+ *  on the last surviving marker so a truncated run stays auditable in the DOM
+ *  (and greppable in a rendered page) without printing anything extra. */
+function resolvedMarker(hit: TagHit, more: readonly number[]): string {
+  const entry = hit.entry as CitationEntry;
+  return `<sup class="qp-cite"><a href="#${CITATION_ANCHOR_PREFIX}${entry.n}"` +
+    ` class="qp-cite-link" title="${escapeAttr(markerTitle(entry))}"` +
+    ` data-tag="${escapeAttr(hit.tag)}"` +
+    (more.length ? ` data-more="${more.join(',')}"` : '') +
+    `>[${entry.n}]</a></sup>`;
+}
+
+/**
+ * Render ONE run of adjacent resolved markers, de-duplicated and capped.
+ *
+ *  - a number already shown in this run is dropped — this is the whole fix:
+ *    `[MGT-4][MGT-45]` (two tags, one DEF 14A) and `[POL-31][POL-31]` (one tag
+ *    written twice) both stop rendering as `[4][4]`;
+ *  - past CITATION_RUN_MAX distinct numbers the rest are dropped too, keeping
+ *    the FIRST ones in the order the writer put them;
+ *  - a dropped marker takes its own preceding separator with it, so collapsing
+ *    `[1], [1]` leaves `[1]` and not a stranded comma.
+ *
+ * Nothing is dropped from the numbering or the References list: those are
+ * derived from the raw prose (buildCitationIndex / citedEntries), which still
+ * contains every tag, so a truncated run still lists all of its sources.
+ */
+function renderMarkerRun(run: readonly TagHit[], text: string): string {
+  if (!run[0].entry) return unresolvedMarker(run[0].tag);
+
+  const kept: { hit: TagHit; gap: string }[] = [];
+  const shown = new Set<number>();
+  const more: number[] = [];
+  for (let i = 0; i < run.length; i++) {
+    const n = (run[i].entry as CitationEntry).n;
+    if (shown.has(n)) continue;                    // same reference twice in a row
+    if (shown.size >= CITATION_RUN_MAX) {          // run is already long enough
+      if (!more.includes(n)) more.push(n);
+      continue;
+    }
+    shown.add(n);
+    kept.push({ hit: run[i], gap: i === 0 ? '' : text.slice(run[i - 1].end, run[i].start) });
+  }
+  return kept
+    .map((k, i) => k.gap + resolvedMarker(k.hit, i === kept.length - 1 ? more : []))
+    .join('');
+}
+
 /**
  * Replace every `[XXX-n]` tag with its superscript marker.
  *
@@ -289,24 +374,47 @@ function markerTitle(entry: CitationEntry): string {
  * (`[RB-Apr]`, `[LRN-CA]`) stays legible and diagnosable instead of collapsing
  * into an anonymous question mark. It is deliberately NOT superscripted
  * either: a raised `[FY-2025]` would misrepresent prose as a reference marker.
+ *
+ * Adjacent resolved markers are gathered into a RUN and thinned by
+ * renderMarkerRun — repeats collapse, long pile-ups are capped. An unresolved
+ * tag prints its own text, so it can never be part of a run and is never
+ * touched by that logic.
  */
 export function annotateCitations(text: string, index: CitationIndex | null | undefined): string {
   if (!text) return text;
   const idx = index ?? EMPTY_CITATION_INDEX;
   const byNumber = new Map<number, CitationEntry>(idx.entries.map(e => [e.n, e]));
 
-  return text.replace(citationTagRe(), (_whole: string, prefix: string, suffix: string) => {
-    const tag = `${prefix}-${suffix}`;
+  const hits: TagHit[] = [];
+  const re = citationTagRe();
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    const tag = `${m[1]}-${m[2]}`;
     const n = idx.numbers[tag.toUpperCase()];
-    const entry = n === undefined ? undefined : byNumber.get(n);
-    if (!entry) {
-      return `<span class="qp-cite-unresolved" title="unverified source"` +
-        ` data-tag="${escapeAttr(tag)}">[${escapeAttr(tag)}]</span>`;
+    hits.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      tag,
+      entry: n === undefined ? undefined : byNumber.get(n),
+    });
+  }
+  if (!hits.length) return text;
+
+  const out: string[] = [];
+  let cursor = 0;
+  for (let i = 0; i < hits.length; ) {
+    let j = i + 1;
+    if (hits[i].entry) {
+      while (j < hits.length && hits[j].entry &&
+             isMarkerGap(text.slice(hits[j - 1].end, hits[j].start))) j++;
     }
-    return `<sup class="qp-cite"><a href="#${CITATION_ANCHOR_PREFIX}${entry.n}"` +
-      ` class="qp-cite-link" title="${escapeAttr(markerTitle(entry))}"` +
-      ` data-tag="${escapeAttr(tag)}">[${entry.n}]</a></sup>`;
-  });
+    out.push(text.slice(cursor, hits[i].start));
+    out.push(renderMarkerRun(hits.slice(i, j), text));
+    cursor = hits[j - 1].end;
+    i = j;
+  }
+  out.push(text.slice(cursor));
+  return out.join('');
 }
 
 /** HTML-escape + citation markers for prose rendered WITHOUT markdown
