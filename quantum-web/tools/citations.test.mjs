@@ -5,9 +5,15 @@
  *
  * No karma, no browser: the module is deliberately Angular-free, so it is
  * transpiled with the esbuild already in node_modules and imported directly.
+ *
+ * The second half does the same to CitationScrollDirective — the click handler
+ * that keeps an inline marker on the page instead of letting `<base href="/">`
+ * send it to the home route. It is Angular-decorated but its handler is plain
+ * code, so it is bundled against three-line @angular stubs and driven over a
+ * fake DOM. Same runner, no chrome required.
  */
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -30,8 +36,45 @@ try {
 const {
   buildCitationIndex, annotateCitations, renderCitedText, mergeCitationRows,
   EMPTY_CITATION_INDEX, safeUrl, citationRunDateKey, citedEntries,
-  CITATION_RUN_MAX,
+  CITATION_RUN_MAX, citationAnchorTarget, CITATION_ANCHOR_PREFIX,
 } = await import(pathToFileURL(bundle).href);
+
+/* ── the directive, bundled against @angular stubs ─────────────────────── */
+
+const esbuild = join(root, 'node_modules/.bin/esbuild');
+const stub = (name, src) => {
+  const file = join(out, name);
+  writeFileSync(file, src);
+  return file;
+};
+// Only the four symbols citation-scroll.directive.ts imports. The decorators
+// are no-ops: the class body — which is the thing under test — is untouched.
+const coreStub = stub('ng-core.mjs', `
+  export const Directive = () => (c) => c;
+  export const HostListener = () => () => {};
+  export const Inject = () => () => {};
+  export const PLATFORM_ID = 'PLATFORM_ID';
+  export class NgZone { runOutsideAngular(fn) { return fn(); } }
+`);
+const commonStub = stub('ng-common.mjs', `
+  export const DOCUMENT = 'DOCUMENT';
+  export const isPlatformBrowser = (id) => id === 'browser';
+`);
+const dirBundle = join(out, 'citation-scroll.mjs');
+try {
+  execFileSync(esbuild, [
+    join(root, 'src/app/directives/citation-scroll.directive.ts'),
+    '--bundle', '--format=esm', '--target=es2022',
+    `--alias:@angular/core=${coreStub}`, `--alias:@angular/common=${commonStub}`,
+    '--tsconfig-raw={"compilerOptions":{"experimentalDecorators":true,"useDefineForClassFields":false}}',
+    `--outfile=${dirBundle}`,
+  ], { stdio: 'pipe' });
+} catch (err) {
+  console.error(String(err.stderr ?? err));
+  process.exit(1);
+}
+const { CitationScrollDirective } = await import(pathToFileURL(dirBundle).href);
+const { NgZone } = await import(pathToFileURL(coreStub).href);
 
 /** The reference numbers a rendered string shows, in order: ['1','1','2']. */
 const markerNumbers = html => [...html.matchAll(/<sup class="qp-cite">.*?>\[(\d+)\]<\/a><\/sup>/g)].map(m => m[1]);
@@ -353,6 +396,174 @@ test('collapsing survives the markdown path and renderCitedText alike', () => {
   const src = 'Pay rose [MGT-4][MGT-45].';
   const idx = buildCitationIndex([src], RUN_REFS);
   assert.deepEqual(markerNumbers(renderCitedText(src, idx)), ['1']);
+});
+
+/* ── click target (CitationScrollDirective) ───────────────────────────── */
+
+test('a marker\'s own href is recognised as an in-page citation anchor', () => {
+  // the exact href annotateCitations emits — the directive reads the RAW
+  // attribute, so this is the string it actually sees
+  const src = 'Revenue beat [SEN-12].';
+  const idx = buildCitationIndex([src], REFS);
+  const href = /href="([^"]+)"/.exec(annotateCitations(src, idx))[1];
+  assert.equal(href, `#${CITATION_ANCHOR_PREFIX}1`);
+  assert.equal(citationAnchorTarget(href), `${CITATION_ANCHOR_PREFIX}1`,
+    'the id returned is exactly what ReferencesComponent puts on the <li>');
+});
+
+test('an already-resolved href still resolves to the same entry id', () => {
+  // <base href="/"> is what makes the browser hand back an absolute url here;
+  // the directive must recognise its own anchor either way
+  assert.equal(citationAnchorTarget('https://stockbar.app/stock/TSLA/management#qp-ref-12'), 'qp-ref-12');
+  assert.equal(citationAnchorTarget('/stock/TSLA#qp-ref-3'), 'qp-ref-3');
+});
+
+test('every other link is left to the browser — no href is hijacked', () => {
+  for (const href of [
+    'https://www.reuters.com/markets/tsla-a',  // a References-list source link
+    '#chain-4',                                // factor page chain anchor
+    '#section-references',                     // TOC anchor
+    '/stock/TSLA/management',                  // a routerLink
+    '',
+    null,
+    undefined,
+  ]) {
+    assert.equal(citationAnchorTarget(href), null, `must not claim ${JSON.stringify(href)}`);
+  }
+});
+
+test('only prefix + digits is claimed — nothing else can be smuggled into an id', () => {
+  // the ids in the DOM are prefix + reference number and nothing else, so a
+  // near-miss fragment must fall through rather than be looked up
+  assert.equal(citationAnchorTarget('#qp-ref-'), null);
+  assert.equal(citationAnchorTarget('#qp-ref-3x'), null);
+  assert.equal(citationAnchorTarget('#qp-ref-3 '), null);
+  assert.equal(citationAnchorTarget('#qp-ref-x"><img src=x onerror=alert(1)>'), null);
+  assert.equal(citationAnchorTarget('#qp-reference-3'), null);
+  assert.equal(citationAnchorTarget('#QP-REF-3'), null, 'ids are case-sensitive');
+  assert.equal(citationAnchorTarget('#qp-ref-10'), 'qp-ref-10', 'multi-digit numbers still work');
+});
+
+test('a capped run still points its surviving markers at real entries', () => {
+  // data-more numbers are NOT rendered as links; whatever IS rendered must be
+  // claimable by the click handler
+  const src = '[POL-31][POL-32][POL-33][MGT-4]';  // 4 distinct references, cap is 3
+  const idx = buildCitationIndex([src], RUN_REFS);
+  const hrefs = [...annotateCitations(src, idx).matchAll(/href="([^"]+)"/g)].map(m => m[1]);
+  assert.equal(hrefs.length, CITATION_RUN_MAX);
+  for (const h of hrefs) assert.ok(citationAnchorTarget(h), `${h} must be handled in-page`);
+});
+
+/* ── the click handler (CitationScrollDirective) ──────────────────────── */
+
+/** Just enough DOM for the handler: the bits it actually calls, each one
+ *  recording what it was asked to do. */
+function makeEl(id, tag = 'li') {
+  const attrs = {};
+  const el = {
+    id, tagName: tag.toUpperCase(), offsetWidth: 1,
+    classes: new Set(), focused: false, focusOpts: null, scrolled: null,
+    classList: {
+      add: c => el.classes.add(c), remove: c => el.classes.delete(c),
+      contains: c => el.classes.has(c),
+    },
+    getAttribute: k => (k in attrs ? attrs[k] : null),
+    setAttribute: (k, v) => { attrs[k] = String(v); },
+    hasAttribute: k => k in attrs,
+    focus: o => { el.focused = true; el.focusOpts = o; },
+    scrollIntoView: o => { el.scrolled = o; },
+    // the marker is a <sup><a>…</a></sup>, so the click target is the anchor's
+    // own text node's parent — closest('a') is what finds the link
+    closest: sel => (sel === 'a' && el.tagName === 'A' ? el : el.parentAnchor ?? null),
+  };
+  return el;
+}
+
+/** A page at /stock/TSLA/management with a two-entry References list. */
+function clickWorld({ href = '#qp-ref-2', reduce = false } = {}) {
+  const entries = { 'qp-ref-1': makeEl('qp-ref-1'), 'qp-ref-2': makeEl('qp-ref-2') };
+  const replaced = [];
+  const win = {
+    matchMedia: q => ({ matches: reduce && /reduce/.test(q) }),
+    location: { pathname: '/stock/TSLA/management', search: '' },
+    history: { state: { navId: 7 }, length: 4, replaceState: (st, ttl, url) => replaced.push(url) },
+  };
+  const doc = { defaultView: win, getElementById: id => entries[id] ?? null };
+  const anchor = makeEl(null, 'a');
+  anchor.setAttribute('href', href);
+  const sup = makeEl(null, 'sup');
+  sup.parentAnchor = anchor;
+  let prevented = 0;
+  return {
+    entries, replaced, win,
+    directive: new CitationScrollDirective(doc, 'browser', new NgZone()),
+    event: { target: sup, defaultPrevented: false, preventDefault: () => { prevented++; } },
+    prevented: () => prevented,
+  };
+}
+
+test('click: the marker is cancelled and the entry is scrolled to in-page', () => {
+  const w = clickWorld();
+  w.directive.onClick(w.event);
+  assert.equal(w.prevented(), 1, 'preventDefault — the bug was a navigation to the home route');
+  assert.deepEqual(w.entries['qp-ref-2'].scrolled, { behavior: 'smooth', block: 'start' });
+  assert.equal(w.entries['qp-ref-1'].scrolled, null, 'only the clicked entry moves');
+});
+
+test('click: keyboard focus follows the jump, without a second scroll', () => {
+  const w = clickWorld();
+  w.directive.onClick(w.event);
+  const el = w.entries['qp-ref-2'];
+  assert.equal(el.focused, true, 'the reader\'s keyboard position follows them down');
+  assert.deepEqual(el.focusOpts, { preventScroll: true }, 'focus must not cancel the smooth scroll');
+});
+
+test('click: the address bar is REPLACED, never pushed — back button unaffected', () => {
+  const w = clickWorld();
+  w.directive.onClick(w.event);
+  assert.deepEqual(w.replaced, ['/stock/TSLA/management#qp-ref-2']);
+  assert.equal(w.win.history.length, 4, 'no history entry added');
+});
+
+test('click: the entry flashes, and the highlight is cleaned up', () => {
+  const w = clickWorld();
+  w.directive.onClick(w.event);
+  assert.ok(w.entries['qp-ref-2'].classList.contains('qp-ref-flash'));
+  w.directive.ngOnDestroy();
+  assert.ok(!w.entries['qp-ref-2'].classList.contains('qp-ref-flash'));
+});
+
+test('click: prefers-reduced-motion jumps instantly, still without navigating', () => {
+  const w = clickWorld({ reduce: true });
+  w.directive.onClick(w.event);
+  assert.deepEqual(w.entries['qp-ref-2'].scrolled, { behavior: 'auto', block: 'start' });
+  assert.equal(w.prevented(), 1);
+});
+
+test('click: every other link on the page is left alone', () => {
+  for (const href of ['https://www.reuters.com/markets/tsla-a', '#chain-4', '/stock/TSLA']) {
+    const w = clickWorld({ href });
+    w.directive.onClick(w.event);
+    assert.equal(w.prevented(), 0, `${href} must still behave like a normal link`);
+    assert.deepEqual(w.replaced, [], 'and must not touch the url');
+  }
+});
+
+test('click: a marker whose entry is not on screen still never navigates', () => {
+  const w = clickWorld({ href: '#qp-ref-9' });
+  w.directive.onClick(w.event);
+  assert.equal(w.prevented(), 1, 'doing nothing beats landing on the home page');
+  assert.deepEqual(w.replaced, [], 'the url is left exactly as it was');
+});
+
+test('click: SSR — the handler touches no DOM when the platform is not a browser', () => {
+  const w = clickWorld();
+  const exploding = {
+    get defaultView() { throw new Error('DOM read during server rendering'); },
+    getElementById() { throw new Error('DOM read during server rendering'); },
+  };
+  new CitationScrollDirective(exploding, 'server', new NgZone()).onClick(w.event);
+  assert.equal(w.prevented(), 0);
 });
 
 /* ── runner ───────────────────────────────────────────────────────────── */

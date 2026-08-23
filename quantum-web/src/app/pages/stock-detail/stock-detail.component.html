@@ -29,7 +29,11 @@
 
   <!-- Body: article -->
   <div class="qp-body">
-    <article class="qp-article">
+    <!-- appCitationScroll: one delegated handler for the inline [n] markers
+         injected into this subtree by the md / cite pipes — they are raw HTML,
+         so a bare "#qp-ref-3" would resolve against <base href="/"> and send
+         the reader to the home page. -->
+    <article class="qp-article" appCitationScroll>
 
       <!-- Overview: verdict + narrative on the left, horizons + risks rail on
            the right — one dashboard card instead of a stacked column -->

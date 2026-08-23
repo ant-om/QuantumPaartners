@@ -57,6 +57,36 @@ export const EMPTY_CITATION_INDEX: CitationIndex = { numbers: {}, entries: [] };
 export const CITATION_ANCHOR_PREFIX = 'qp-ref-';
 
 /**
+ * The References-list element id a clicked anchor points at, or null when the
+ * href is not one of ours.
+ *
+ * Markers are injected as raw HTML (see resolvedMarker), so their `#qp-ref-N`
+ * href is NOT an Angular link and the router never sees it. With
+ * `<base href="/">` in index.html the browser resolves a bare fragment against
+ * the BASE url, so clicking one from /stock/TSLA/management navigates to
+ * `/#qp-ref-3` — which matches the `''` route and dumps the reader on the home
+ * page. CitationScrollDirective uses this to recognise our own anchors and
+ * scroll in-page instead of letting the browser navigate.
+ *
+ * Accepts the raw attribute (`#qp-ref-3`) or an already-resolved href
+ * (`https://stockbar.app/#qp-ref-3`), and only ever returns an id of the shape
+ * ReferencesComponent actually puts in the DOM: the prefix plus digits.
+ * Anything else — a real outbound link, a `#chain-4` anchor, a crafted
+ * `#qp-ref-x` — returns null and is left entirely to the browser.
+ *
+ * Pure and DOM-free like the rest of this file, so it runs under SSR and is
+ * covered by tools/citations.test.mjs.
+ */
+export function citationAnchorTarget(href: string | null | undefined): string | null {
+  if (typeof href !== 'string') return null;
+  const hash = href.indexOf('#');
+  if (hash < 0) return null;
+  const frag = href.slice(hash + 1);
+  if (!frag.startsWith(CITATION_ANCHOR_PREFIX)) return null;
+  return /^\d+$/.test(frag.slice(CITATION_ANCHOR_PREFIX.length)) ? frag : null;
+}
+
+/**
  * How many DISTINCT references one uninterrupted run of markers may show.
  *
  * The chains habitually stack every tag that touched a claim onto its full

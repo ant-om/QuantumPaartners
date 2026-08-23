@@ -20,7 +20,8 @@ import { CITATION_ANCHOR_PREFIX, CitationEntry } from '../../services/citations'
         original document.
       </p>
       <ol class="qp-ref-list">
-        <li *ngFor="let e of entries" class="qp-ref-item" [id]="anchor(e.n)">
+        <li *ngFor="let e of entries" class="qp-ref-item" [id]="anchor(e.n)"
+            tabindex="-1">
           <span class="qp-ref-n qp-mono">{{ e.n }}.</span><!--
        --><span class="qp-ref-text"><span class="qp-ref-source">{{ e.source }}</span><ng-container
               *ngIf="e.url"> — <a class="qp-ref-url" [href]="e.url" target="_blank"
@@ -42,6 +43,22 @@ import { CITATION_ANCHOR_PREFIX, CitationEntry } from '../../services/citations'
       padding: 9px 2px; border-bottom: 1px solid var(--border);
       font-size: 0.84rem; line-height: 1.6; color: var(--text-2); scroll-margin-top: 90px; }
     .qp-ref-item:target { background: var(--accent-soft); }
+    /* Jumped-to entry: a brief highlight so the reader sees where they landed.
+       :target cannot do this — CitationScrollDirective updates the url with
+       replaceState, which does not re-evaluate :target — so the directive adds
+       .qp-ref-flash for a moment instead. */
+    .qp-ref-item.qp-ref-flash { animation: qp-ref-flash-in 1.6s ease-out; }
+    @keyframes qp-ref-flash-in {
+      0%, 35% { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+      100% { background: transparent; box-shadow: inset 2px 0 0 transparent; }
+    }
+    /* tabindex="-1" makes the entry focusable for the jump; it is not a tab
+       stop, so only show a ring when the reader is actually on the keyboard. */
+    .qp-ref-item:focus { outline: none; }
+    .qp-ref-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      .qp-ref-item.qp-ref-flash { animation: none; background: var(--accent-soft); }
+    }
     .qp-ref-n { color: var(--accent); font-size: 0.75rem; flex: 0 0 auto;
       min-width: 1.9em; text-align: right; }
     .qp-ref-text { min-width: 0; overflow-wrap: anywhere; }

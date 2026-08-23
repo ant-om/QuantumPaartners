@@ -30,7 +30,9 @@
     </div>
   </div>
 
-  <article class="qp-article">
+  <!-- appCitationScroll: see stock-detail — keeps the inline [n] markers
+       scrolling to the References list instead of navigating home. -->
+  <article class="qp-article" appCitationScroll>
 
     <!-- Structured analysis blocks -->
     <app-analysis-section *ngIf="blocks?.length"
