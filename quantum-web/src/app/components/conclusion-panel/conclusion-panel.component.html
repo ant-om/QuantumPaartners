@@ -1,0 +1,66 @@
+<div class="qp-takeaway-block" [class.qp-tab-panel]="tabbed"
+     [class.pos]="sentiment === 'positive'" [class.neg]="sentiment === 'negative'">
+  <div class="qp-takeaway-head">
+    <div class="qp-takeaway-titlegroup">
+      <h3 class="qp-takeaway-title">
+        <a *ngIf="titleLink" [routerLink]="['/stock', ticker, factor.slug]" class="qp-takeaway-title-link">{{ factor.label }} →</a>
+        <ng-container *ngIf="!titleLink">{{ factor.label }}</ng-container>
+      </h3>
+      <app-sentiment-chip [sentiment]="sentiment"></app-sentiment-chip>
+    </div>
+  </div>
+
+  <ul class="qp-takeaway-list">
+    <li *ngFor="let t of rows; let i = index" class="qp-takeaway-item" [attr.id]="rowIdPrefix ? rowIdPrefix + (i + 1) : null">
+      <div class="qp-row-scores">
+        <ng-container *ngIf="t.score !== null; else noScore">
+
+          <!-- overview: stance pill, certainty in a hover popover -->
+          <div *ngIf="certainty === 'hover'" class="qp-stance-wrap">
+            <span tabindex="0" [class]="'qp-score-pill qp-mono ' + stance(t.score).band">{{ stance(t.score).label }} · {{ t.score }}</span>
+            <div *ngIf="t.certainty !== null || t.certaintyText" class="qp-stance-pop">
+              <div class="qp-pop-head qp-mono">
+                <span>Certainty</span><span *ngIf="t.certainty !== null">{{ t.certainty }}/100</span>
+              </div>
+              <span *ngIf="t.certainty !== null" class="qp-pop-track"><span class="qp-pop-fill" [style.width.%]="t.certainty"></span></span>
+              <p *ngIf="t.certaintyText" class="qp-pop-text" [innerHTML]="t.certaintyText | cite : citations"></p>
+              <p *ngIf="!t.certaintyText" class="qp-pop-text qp-pop-none">The committee did not provide a certainty explanation for this section.</p>
+            </div>
+          </div>
+
+          <!-- sub-page: same pill, certainty always visible beneath it -->
+          <ng-container *ngIf="certainty === 'inline'">
+            <span [class]="'qp-score-pill qp-mono ' + stance(t.score).band">{{ stance(t.score).label }} · {{ t.score }}</span>
+            <div *ngIf="t.certainty !== null || t.certaintyText" class="qp-cert">
+              <div class="qp-pop-head qp-mono">
+                <span>Certainty</span><span *ngIf="t.certainty !== null">{{ t.certainty }}/100</span>
+              </div>
+              <span *ngIf="t.certainty !== null" class="qp-pop-track"><span class="qp-pop-fill" [style.width.%]="t.certainty"></span></span>
+              <p *ngIf="t.certaintyText" class="qp-cert-text" [innerHTML]="t.certaintyText | cite : citations"></p>
+            </div>
+          </ng-container>
+
+        </ng-container>
+        <ng-template #noScore><span class="qp-score-pill qp-mono none">—</span></ng-template>
+      </div>
+
+      <div class="qp-takeaway-body">
+        <b>{{ t.heading }}</b>
+        <div class="qp-takeaway-text" [innerHTML]="t.takeaway | cite : citations"></div>
+        <div *ngIf="t.insight" class="qp-takeaway-insight qp-md"
+             [innerHTML]="t.insight | md : ticker : factor.slug : citations"></div>
+        <div *ngIf="t.refs.length" class="qp-chain-refs">
+          <span class="qp-refs-label qp-mono">Sources</span>
+          <ng-container *ngFor="let r of t.refs">
+            <a *ngIf="chainLink === 'route'" class="qp-chain-ref qp-mono"
+               [routerLink]="['/stock', ticker, factor.slug]" [fragment]="'chain-' + r"
+               title="Jump to this chain's full reasoning">{{ refLabel(r) }} →</a>
+            <a *ngIf="chainLink === 'anchor'" class="qp-chain-ref qp-mono"
+               [href]="'#chain-' + r" (click)="jump(r, $event)"
+               title="Open this chain below">{{ refLabel(r) }} →</a>
+          </ng-container>
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>

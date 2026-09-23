@@ -9,6 +9,7 @@ import { CitationIndex } from '../services/citations';
  *         [innerHTML]="text | md : ticker"                     — + factor cross-links
  *         [innerHTML]="text | md : ticker : factorSlug"        — exclude self-links
  *         [innerHTML]="text | md : ticker : slug : citations"  — + [1] citations
+ *         [innerHTML]="text | md : ticker : slug : citations : true" — + run-in rubric labels
  *
  *  bypassSecurityTrustHtml is safe here because MarkdownService HTML-escapes
  *  the ENTIRE source before parsing — the only live HTML in the output is
@@ -27,9 +28,10 @@ export class MdPipe implements PipeTransform {
     ticker?: string,
     currentFactor?: string,
     citations?: CitationIndex | null,
+    runIn?: boolean,
   ): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(
-      this.markdown.render(value, { ticker, currentFactor, citations }),
+      this.markdown.render(value, { ticker, currentFactor, citations, runIn }),
     );
   }
 }

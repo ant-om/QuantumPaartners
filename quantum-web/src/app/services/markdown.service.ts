@@ -11,6 +11,10 @@ export interface MdRenderOptions {
   currentFactor?: string;
   /** Page-wide citation numbering. Absent/empty → tags render as today. */
   citations?: CitationIndex | null;
+  /** Chain bodies keep the L2 rubric as a bold phrase opening each paragraph
+   *  ("**Event details.** Tesla …"). When set, such a phrase becomes a run-in
+   *  label instead of bold clutter. Off for conclusion rows. */
+  runIn?: boolean;
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -56,6 +60,16 @@ const markedInstance = new Marked({
     }
   },
 });
+
+/** A short bold phrase that OPENS a paragraph or list item and ends in a
+ *  period or colon is a rubric label, not emphasis: "**Relation to TSLA.** …".
+ *  Bold used mid-sentence is untouched. Runs on renderer output only. */
+function markRunInLabels(html: string): string {
+  return html.replace(
+    /<(p|li)><strong>([^<]{2,48}?)\s*[.:]\s*<\/strong>\s*/g,
+    '<$1><span class="qp-runin">$2</span> ',
+  );
+}
 
 function postProcess(html: string): string {
   return html
@@ -147,6 +161,7 @@ export function renderAnalysisMarkdown(text: string | null | undefined, options:
   const src = annotateCitations(markGapTags(escapeHtml(raw)), options.citations);
   let html = markedInstance.parse(src, { async: false }) as string;
   html = postProcess(html);
+  if (options.runIn) html = markRunInLabels(html);
   if (options.ticker) {
     html = linkifyFactors(html, options.ticker, options.currentFactor);
   }

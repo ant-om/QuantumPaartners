@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, sectionProjection, sectionInsight, sectionChainRefs, sectionCertaintyText, r5CaseEvaluations, VerdictHistoryPoint } from '../../services/supabase.service';
+import { SupabaseService, Stock, StockAnalysis, SectionBlock, ScoreHistoryPoint, AnalysisVerdict, HorizonStance, Sentiment, r5CaseEvaluations, VerdictHistoryPoint } from '../../services/supabase.service';
 import { SeoService } from '../../services/seo.service';
 import { CitationEntry, CitationIndex, EMPTY_CITATION_INDEX, annotateCitations, buildCitationIndex, citedEntries } from '../../services/citations';
-import { CHAIN_TOPICS, FACTORS, FactorDef, factorDisplay } from '../../models/factors';
+import { FACTORS, FactorDef, factorDisplay } from '../../models/factors';
+import { ConclusionRow, conclusionRows } from '../../models/conclusion';
 
 @Component({
   selector: 'app-stock-detail',
@@ -350,38 +351,10 @@ export class StockDetailComponent implements OnInit {
     return (this.analysis as any)?.[key] ?? null;
   }
 
-  takeaways(key: string): { heading: string; takeaway: string; insight: string | null; refs: number[]; score: number | null; certainty: number | null; certaintyText: string | null }[] {
-    return (this.blocks(key) ?? [])
-      .filter(b => b.takeaway)
-      .map(b => ({
-        heading: b.heading,
-        // full Projection paragraph when the body has one; legacy rows keep the stored one-liner
-        takeaway: sectionProjection(b) ?? b.takeaway,
-        insight: sectionInsight(b),
-        refs: sectionChainRefs(b),
-        score: b.score ?? null,
-        certainty: b.certainty ?? null,
-        certaintyText: sectionCertaintyText(b),
-      }));
-  }
-
-  /** Citation label for a chain the section names as its source —
-   *  "Chain 2 · Balance Sheet" when the module's topic registry covers it. */
-  chainRefLabel(f: FactorDef, r: number): string {
-    const topics = CHAIN_TOPICS[f.module];
-    // last registry entry is the conclusion itself, not a numbered chain
-    const topic = topics && r <= topics.length - 1 ? topics[r - 1] : null;
-    return topic ? `Chain ${r} · ${topic}` : `Chain ${r}`;
-  }
-
-  /** Conclusion scores are 0-100 bullishness — surface them as stance words
-   *  (the Horizons vocabulary), not bare numbers. Exact score stays on hover. */
-  scoreStance(s: number): { label: string; band: string } {
-    if (s >= 70) return { label: 'Bullish', band: 'bull' };
-    if (s >= 55) return { label: 'Leans bullish', band: 'lean-bull' };
-    if (s >= 45) return { label: 'Neutral', band: 'neutral' };
-    if (s >= 30) return { label: 'Leans bearish', band: 'lean-bear' };
-    return { label: 'Bearish', band: 'bear' };
+  /** The factor tab's rows — parsed by the shared conclusion model, so the
+   *  overview and the factor sub-page can never disagree on a section. */
+  takeaways(key: string): ConclusionRow[] {
+    return conclusionRows(this.blocks(key));
   }
 
   dotColor(key: string): string {

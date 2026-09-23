@@ -20,6 +20,7 @@ import { NavComponent } from './components/nav/nav.component';
 import { StockCardComponent } from './components/stock-card/stock-card.component';
 import { AnalysisChartsComponent } from './components/analysis-charts/analysis-charts.component';
 import { BlockScoreBarsComponent } from './components/block-score-bars/block-score-bars.component';
+import { ConclusionPanelComponent } from './components/conclusion-panel/conclusion-panel.component';
 import { TickerTapeComponent } from './components/ticker-tape/ticker-tape.component';
 import { RevealDirective } from './directives/reveal.directive';
 import { CitationScrollDirective } from './directives/citation-scroll.directive';
@@ -45,6 +46,7 @@ import { CitePipe } from './pipes/cite.pipe';
     StockCardComponent,
     AnalysisChartsComponent,
     BlockScoreBarsComponent,
+    ConclusionPanelComponent,
     TickerTapeComponent,
     ReferencesComponent,
     RevealDirective,

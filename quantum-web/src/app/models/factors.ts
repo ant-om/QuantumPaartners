@@ -39,6 +39,7 @@ export const CHAIN_TOPICS: Record<string, string[]> = {
     'Political Theory Lenses',
     'Key Individuals & Non-State Actors',
     'Prediction Markets vs News Timeline',
+    'Scenario Development',
     'Conclusion',
   ],
   fs: [

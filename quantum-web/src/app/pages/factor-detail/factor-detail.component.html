@@ -4,7 +4,7 @@
   Stock not found. <a routerLink="/" class="qp-back">← Back</a>
 </div>
 
-<div *ngIf="!loading && !notFound && stock && factor" class="qp-detail">
+<div *ngIf="!loading && !notFound && stock && factor" class="qp-detail qp-factor-page">
 
   <!-- Breadcrumb -->
   <nav class="qp-crumbs qp-mono">
@@ -15,84 +15,115 @@
     <span class="qp-crumbs-here">{{ factor.short }}</span>
   </nav>
 
-  <!-- Factor header -->
+  <!-- Factor header: the score lives in the conclusion's stance pills, once -->
   <div class="qp-stock-titleblock">
     <div class="qp-stock-ticker">{{ stock.ticker }} · {{ stock.name }}</div>
     <div class="qp-stock-name">{{ factor.label }}</div>
     <div class="qp-factor-meta">
       <app-sentiment-chip [sentiment]="display?.sentiment"></app-sentiment-chip>
-      <app-score-gauge *ngIf="display && display.score !== null"
-                       [score]="display.score" label="Score" [size]="56"></app-score-gauge>
       <span *ngIf="analysis" class="qp-badge">Updated {{ analysis.run_at | date:'mediumDate' }}</span>
-    </div>
-    <div *ngIf="blocks?.length" class="qp-factor-blockbars">
-      <app-block-score-bars [blocks]="blocks"></app-block-score-bars>
     </div>
   </div>
 
-  <!-- appCitationScroll: see stock-detail — keeps the inline [n] markers
-       scrolling to the References list instead of navigating home. -->
-  <article class="qp-article" appCitationScroll>
+  <!-- Wikipedia layout: contents rail on the left, the article in the centre,
+       the right rail reserved for visuals the text itself refers to. -->
+  <div class="qp-factor-grid">
 
-    <!-- Structured analysis blocks -->
-    <app-analysis-section *ngIf="blocks?.length"
-                          [key]="factor.key" label="Analysis" [blocks]="blocks"
-                          [ticker]="stock.ticker" [citations]="citations"></app-analysis-section>
+    <aside class="qp-rail qp-rail-left">
+      <nav class="qp-toc" aria-label="Contents">
+        <div class="qp-toc-h qp-mono">Contents</div>
 
-    <!-- Price & VIX line charts — moved here from the stock overview page -->
-    <div *ngIf="metricsPlacement === 'price'" class="qp-section">
-      <h2 class="qp-section-heading">Price &amp; volatility</h2>
-      <app-metric-charts [metrics]="analysis!.metrics" placement="stock"></app-metric-charts>
-    </div>
+        <div *ngIf="tocRows.length" class="qp-toc-g"><a href="#conclusion" (click)="jumpTo('conclusion', $event)">Conclusion</a></div>
+        <ol *ngIf="tocRows.length" class="qp-toc-list">
+          <li *ngFor="let r of tocRows; let i = index" [class.active]="activeId === 'concl-' + (i + 1)">
+            <a [href]="'#concl-' + (i + 1)" (click)="jumpTo('concl-' + (i + 1), $event)">{{ r.heading }}</a>
+          </li>
+        </ol>
 
-    <!-- Factor-specific quant graphics -->
-    <div *ngIf="metricsPlacement" class="qp-section">
-      <h2 class="qp-section-heading">{{ metricsPlacement === 'price' ? 'Quant dashboard' : 'Market exposure' }}</h2>
-      <app-metric-charts [metrics]="analysis!.metrics" [placement]="metricsPlacement"></app-metric-charts>
-    </div>
+        <div class="qp-toc-g"><a href="#chains" (click)="jumpTo('chains', $event)">Analysis</a></div>
+        <ol *ngIf="chainItems.length" class="qp-toc-list qp-toc-chains">
+          <li *ngFor="let c of chainItems" [class.active]="activeId === c.id">
+            <span class="qp-toc-n qp-mono">{{ c.n }}</span>
+            <a [href]="'#' + c.id" (click)="jumpTo(c.id, $event)">{{ c.topic }}</a>
+          </li>
+        </ol>
 
-    <!-- Round-4 reasoning chain -->
-    <div class="qp-section">
-      <h2 class="qp-section-heading">Full reasoning chain</h2>
-      <p class="qp-chain-intro">
-        The unedited Q&amp;A chain our AI analysts ran for this factor — every
-        conclusion above traces back to these steps.
-      </p>
+        <div *ngIf="visibleReferences.length" class="qp-toc-g"><a href="#references" (click)="jumpTo('references', $event)">References</a></div>
+      </nav>
+    </aside>
 
-      <div *ngIf="chainLoading" class="qp-loading" style="padding:40px 0">Loading reasoning chain…</div>
+    <!-- appCitationScroll: see stock-detail — keeps the inline [n] markers
+         scrolling to the References list instead of navigating home. -->
+    <article class="qp-article qp-factor-main" appCitationScroll>
 
-      <ng-container *ngIf="!chainLoading">
-        <p *ngIf="!chain" class="qp-nodata-inline">No reasoning chain is stored for this factor yet.</p>
+      <!-- Committee conclusion — the SAME panel the stock overview renders in its factor tab -->
+      <div *ngIf="blocks?.length" class="qp-section" id="conclusion">
+        <h2 class="qp-section-heading">Committee conclusion</h2>
+        <app-conclusion-panel [blocks]="blocks" [factor]="factor" [ticker]="stock.ticker"
+                              [citations]="citations" [sentiment]="display?.sentiment"
+                              [titleLink]="false" [tabbed]="false" rowIdPrefix="concl-"
+                              certainty="inline" chainLink="anchor"></app-conclusion-panel>
+      </div>
 
-        <div *ngIf="chain?.raw" class="qp-chain-a qp-md"
-             [innerHTML]="chain!.raw | md : stock.ticker : factor.slug : citations"></div>
+      <!-- The refined round-4 chains behind the conclusion, open by default -->
+      <div class="qp-section" id="chains">
+        <h2 class="qp-section-heading qp-heading-row">
+          <span>How the analyst got there</span>
+          <button *ngIf="chainItems.length" type="button" class="qp-acc-toggle-all qp-mono" (click)="toggleAll()">
+            {{ allOpen ? 'Close all ↑' : 'Open all ↓' }}
+          </button>
+        </h2>
 
-        <div *ngFor="let step of chain?.qa; let i = index" class="qp-chain-step" [attr.id]="'chain-' + (i + 1)">
-          <h3 class="qp-chain-q">{{ chainTopics ? chainTopics[i] : 'Step ' + (i + 1) }}</h3>
-          <div *ngIf="showProvenance(step, i)" class="qp-chain-provenance qp-mono">{{ step.label }}</div>
-          <div class="qp-chain-a qp-md"
-               [innerHTML]="step.text | md : stock.ticker : factor.slug : citations"></div>
-        </div>
+        <div *ngIf="chainLoading" class="qp-loading" style="padding:40px 0">Loading reasoning chain…</div>
 
-        <div *ngIf="chain?.conclusion" class="qp-chain-conclusion" id="conclusion">
-          <h3 class="qp-chain-q">Conclusion</h3>
-          <div class="qp-chain-a qp-md"
-               [innerHTML]="chain!.conclusion | md : stock.ticker : factor.slug : citations"></div>
-        </div>
-      </ng-container>
-    </div>
+        <ng-container *ngIf="!chainLoading">
+          <p *ngIf="!chain" class="qp-nodata-inline">No reasoning chain is stored for this factor yet.</p>
 
-    <!-- Sources cited by the prose on screen -->
-    <div *ngIf="visibleReferences.length" class="qp-section">
-      <app-references [entries]="visibleReferences"></app-references>
-    </div>
+          <!-- legacy rows store the chain as one string -->
+          <div *ngIf="chain?.raw" class="qp-chain-a qp-md"
+               [innerHTML]="chain!.raw | md : stock.ticker : factor.slug : citations : true"></div>
 
-    <!-- Prev / next factor -->
-    <nav class="qp-factor-nav">
-      <a *ngIf="prev" [routerLink]="['/stock', stock.ticker, prev.slug]" class="qp-factor-nav-link">← {{ prev.short }}</a>
-      <a [routerLink]="['/stock', stock.ticker]" class="qp-factor-nav-link">{{ stock.ticker }} overview</a>
-      <a *ngIf="next" [routerLink]="['/stock', stock.ticker, next.slug]" class="qp-factor-nav-link">{{ next.short }} →</a>
-    </nav>
+          <details *ngFor="let c of chainItems" class="qp-acc" [attr.id]="c.id"
+                   [open]="c.open" (toggle)="onToggle(c, $event)">
+            <summary>
+              <span class="qp-acc-n qp-mono">{{ c.num }}</span>
+              <span class="qp-acc-main">
+                <span class="qp-acc-t">{{ c.topic }}</span>
+                <span class="qp-acc-teaser" [innerHTML]="c.teaser | cite : citations"></span>
+              </span>
+              <span class="qp-acc-meta qp-mono">
+                <span class="qp-acc-arrow qp-acc-arrow-closed">Read ↓</span>
+                <span class="qp-acc-arrow qp-acc-arrow-open">Close ↑</span>
+              </span>
+            </summary>
+            <div class="qp-acc-body">
+              <div *ngIf="c.partial" class="qp-partial">
+                <b>Partial output.</b> This chain arrived without its opening sections. Shown as stored.
+              </div>
+              <div class="qp-chain-a qp-md"
+                   [innerHTML]="c.text | md : stock.ticker : factor.slug : citations : true"></div>
+            </div>
+          </details>
+        </ng-container>
+      </div>
 
-  </article>
+      <!-- Sources cited by the prose on screen -->
+      <div *ngIf="visibleReferences.length" class="qp-section" id="references">
+        <app-references [entries]="visibleReferences"></app-references>
+      </div>
+
+      <!-- Prev / next factor -->
+      <nav class="qp-factor-nav">
+        <a *ngIf="prev" [routerLink]="['/stock', stock.ticker, prev.slug]" class="qp-factor-nav-link">← {{ prev.short }}</a>
+        <a [routerLink]="['/stock', stock.ticker]" class="qp-factor-nav-link">{{ stock.ticker }} overview</a>
+        <a *ngIf="next" [routerLink]="['/stock', stock.ticker, next.slug]" class="qp-factor-nav-link">{{ next.short }} →</a>
+      </nav>
+
+    </article>
+
+    <!-- Right rail: reserved for visuals the text refers to (the Wikipedia
+         infobox position). Stays empty until a module has one. -->
+    <aside class="qp-rail qp-rail-right" aria-hidden="true"></aside>
+
+  </div>
 </div>
