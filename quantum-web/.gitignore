@@ -40,3 +40,6 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Dev-only offline fixture (generated from archived data; never committed)
+/src/app/offline/offline-fixture.local.ts

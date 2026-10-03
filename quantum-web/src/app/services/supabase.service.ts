@@ -2,6 +2,7 @@ import { Inject, Injectable, PLATFORM_ID, PendingTasks, TransferState, makeState
 import { isPlatformBrowser, isPlatformServer } from '@angular/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
+import { OFFLINE_FIXTURE } from '../offline/offline-fixture';
 import { CitationRefMap, citationRunDateKey, mergeCitationRows } from './citations';
 
 export interface Stock {
@@ -441,6 +442,7 @@ export class SupabaseService {
 
   async getStockByTicker(ticker: string): Promise<Stock | null> {
     return this.cached(`stock:${ticker.toUpperCase()}`, async () => {
+      if (OFFLINE_FIXTURE?.stock.ticker === ticker.toUpperCase()) return OFFLINE_FIXTURE.stock as unknown as Stock;
       const { data, error } = await this.client
         .from('stocks')
         .select('*')
@@ -453,13 +455,16 @@ export class SupabaseService {
 
   async getAnalysis(stockId: string): Promise<StockAnalysis | null> {
     return this.cached(`analysis:${stockId}`, async () => {
-      const { data, error } = await this.client
-        .from('stock_analyses')
-        .select('id, stock_id, source, run_at, summary, political, price, macro, management, sentiment, competitor, financial, metrics, r5_synthesis:raw_output->r5->>synthesis_verbatim')
-        .eq('stock_id', stockId)
-        .single();
+      const offline = OFFLINE_FIXTURE?.stock.id === stockId ? OFFLINE_FIXTURE : null;
+      const { data, error } = offline
+        ? { data: structuredClone(offline.analysis), error: null }
+        : await this.client
+          .from('stock_analyses')
+          .select('id, stock_id, source, run_at, summary, political, price, macro, management, sentiment, competitor, financial, metrics, r5_synthesis:raw_output->r5->>synthesis_verbatim')
+          .eq('stock_id', stockId)
+          .single();
       if (error) return null;
-      const row = data as StockAnalysis;
+      const row = data as unknown as StockAnalysis;
       row.summary = repairSummaryFromR5(cleanAnalysisSummary(row.summary), row.r5_synthesis);
       for (const key of ['political', 'price', 'macro', 'management', 'sentiment', 'competitor', 'financial'] as const) {
         row[key] = cleanSectionBlocks(row[key]);
@@ -473,6 +478,7 @@ export class SupabaseService {
   async getFactorChain(stockId: string, moduleKey: string): Promise<FactorChain | null> {
     if (!(RAW_OUTPUT_MODULES as readonly string[]).includes(moduleKey)) return null;
     return this.cached(`chain:${stockId}:${moduleKey}`, async () => {
+      if (OFFLINE_FIXTURE?.stock.id === stockId) return parseFactorChain(OFFLINE_FIXTURE.chains[moduleKey]);
       const { data, error } = await this.client
         .from('stock_analyses')
         .select(`chain:raw_output->${moduleKey}`)
@@ -530,6 +536,10 @@ export class SupabaseService {
   }
 
   private async fetchCitationRows(ticker: string, runDate: string): Promise<unknown[]> {
+    if (OFFLINE_FIXTURE && OFFLINE_FIXTURE.stock.ticker === ticker &&
+        citationRunDateKey(OFFLINE_FIXTURE.analysis['run_at']) === runDate) {
+      return OFFLINE_FIXTURE.citationRows;
+    }
     const url = `${environment.archiveSupabaseUrl}/rest/v1/citation_refs` +
       `?select=module,refs&ticker=eq.${encodeURIComponent(ticker)}` +
       `&run_date=eq.${encodeURIComponent(runDate)}`;

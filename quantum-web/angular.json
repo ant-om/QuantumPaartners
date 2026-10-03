@@ -75,6 +75,18 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "offline": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "prerender": false,
+              "fileReplacements": [
+                {
+                  "replace": "src/app/offline/offline-fixture.ts",
+                  "with": "src/app/offline/offline-fixture.local.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -87,6 +99,9 @@
             },
             "development": {
               "buildTarget": "quantum-web:build:development"
+            },
+            "offline": {
+              "buildTarget": "quantum-web:build:offline"
             }
           },
           "defaultConfiguration": "development"
