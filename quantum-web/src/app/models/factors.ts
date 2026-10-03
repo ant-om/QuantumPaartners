@@ -34,12 +34,11 @@ export const CHAIN_TOPICS: Record<string, string[]> = {
     'Conclusion',
   ],
   political: [
-    'External Political Events & Institutions',
-    'Internal Country-Specific Factors',
-    'Political Theory Lenses',
-    'Key Individuals & Non-State Actors',
-    'Prediction Markets vs News Timeline',
-    'Scenario Development',
+    'Political Events & Institutional Factors',
+    'Company Political Footprint & Key Individuals',
+    'Prediction Markets vs the News',
+    'Overlooked Points',
+    'Scenarios',
     'Conclusion',
   ],
   fs: [
