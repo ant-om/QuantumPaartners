@@ -27,7 +27,7 @@
 
   <!-- Wikipedia layout: contents rail on the left, the article in the centre,
        the right rail reserved for visuals the text itself refers to. -->
-  <div class="qp-factor-grid">
+  <div class="qp-factor-grid" [class.qp-factor-grid-figures]="figures.length > 0">
 
     <aside class="qp-rail qp-rail-left">
       <nav class="qp-toc" aria-label="Contents">
@@ -63,6 +63,14 @@
                               [citations]="citations" [sentiment]="display?.sentiment"
                               [titleLink]="false" [tabbed]="false" rowIdPrefix="concl-"
                               certainty="inline" chainLink="anchor"></app-conclusion-panel>
+      </div>
+
+      <!-- Legacy / partial rows: no structured blocks, but the run stored its
+           conclusion chain — show it rather than silently dropping it -->
+      <div *ngIf="!blocks?.length && chain?.conclusion" class="qp-section" id="conclusion">
+        <h2 class="qp-section-heading">Committee conclusion</h2>
+        <div class="qp-chain-a qp-md"
+             [innerHTML]="chain!.conclusion | md : stock.ticker : factor.slug : citations : true"></div>
       </div>
 
       <!-- The refined round-4 chains behind the conclusion, open by default -->
@@ -121,9 +129,10 @@
 
     </article>
 
-    <!-- Right rail: reserved for visuals the text refers to (the Wikipedia
-         infobox position). Stays empty until a module has one. -->
-    <aside class="qp-rail qp-rail-right" aria-hidden="true"></aside>
+    <!-- Right rail: visuals the text refers to (the Wikipedia infobox
+         position). Rendered ONLY when this page has figures — without them the
+         grid drops the column entirely, so no empty slot takes space. -->
+    <aside *ngIf="figures.length" class="qp-rail qp-rail-right"></aside>
 
   </div>
 </div>

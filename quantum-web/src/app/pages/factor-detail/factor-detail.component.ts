@@ -6,6 +6,7 @@ import { SeoService } from '../../services/seo.service';
 import { CitationEntry, CitationIndex, CitationRefMap, EMPTY_CITATION_INDEX, buildCitationIndex, citedEntries } from '../../services/citations';
 import { CHAIN_TOPICS, FactorDef, FactorDisplay, factorBySlug, factorDisplay, prevNextFactor } from '../../models/factors';
 import { ConclusionRow, conclusionRows } from '../../models/conclusion';
+import { Figure } from '../../models/figure';
 
 /** One refined chain as the "How the analyst got there" accordion shows it. */
 export interface ChainItem {
@@ -53,6 +54,11 @@ export class FactorDetailComponent implements OnInit {
   activeId: string | null = null;
   prev: FactorDef | null = null;
   next: FactorDef | null = null;
+  /** Right-rail figures (models/figure.ts). Empty until L1 stores figure
+   *  payloads beside its citation refs; the rail and its grid column render
+   *  only when this is non-empty. Deliberately NOT fed from figures/fixtures —
+   *  fixture numbers must never reach a production page. */
+  figures: Figure[] = [];
   loading = true;
   notFound = false;
 
@@ -240,6 +246,7 @@ export class FactorDetailComponent implements OnInit {
   private citationTexts(): (string | null | undefined)[] {
     const texts: (string | null | undefined)[] = [];
     for (const r of conclusionRows(this.blocks)) texts.push(r.certaintyText, r.takeaway, r.insight);
+    if (!this.blocks?.length) texts.push(this.chain?.conclusion);
     texts.push(this.chain?.raw);
     for (const c of this.chainItems) texts.push(c.text);
     return texts;
