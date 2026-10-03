@@ -82,7 +82,7 @@ const unresolved = [...tags].filter(t => index.numbers[t] === undefined);
 let links = 0, grey = 0;
 for (const t of texts) {
   const html = C.annotateCitations(t, index);
-  links += (html.match(/class="qp-cite-link"/g) ?? []).length;
+  links += (html.match(/class="qp-cite-link[" ]/g) ?? []).length;
   grey += (html.match(/qp-cite-unresolved/g) ?? []).length;
 }
 // Bracketed prose that is not a tag prints literally — the L1 header leak.

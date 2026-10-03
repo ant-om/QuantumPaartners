@@ -41,6 +41,11 @@ export interface CitationEntry {
   asOfKind: string | null;
   type: string | null;
   ref: string | null;
+  /** Prediction-market refs only: the market's question, recovered from its
+   *  `ref` slug ("PM:will-the-us-invade-iran-before-2027"). One Polymarket
+   *  EVENT url holds many markets with different odds, so the question is
+   *  what tells two such entries apart in the References list. */
+  question: string | null;
 }
 
 export interface CitationIndex {
@@ -198,6 +203,52 @@ export function mergeCitationRows(rows: unknown): CitationRefMap {
   return out;
 }
 
+/** A prediction-market ref: typed as one, or carrying a `PM:` market id. */
+function isPredictionMarket(ref: CitationRef): boolean {
+  return str(ref.type)?.toLowerCase() === 'prediction-market' || /^PM:/i.test(str(ref.ref) ?? '');
+}
+
+/**
+ * Which tags share ONE reference entry.
+ *
+ *  - an article, filing or wiki page: its normalised url — every chunk of one
+ *    document is one source, however many tags the pipeline minted for it;
+ *  - a prediction market: url + market id. A Polymarket EVENT url (e.g.
+ *    /event/venezuela-leader-end-of-2026) holds several markets with their own
+ *    odds; keyed on the url alone they merged under one number and the page
+ *    cited contradictory odds as a single source;
+ *  - no usable url: source + as_of.
+ */
+function citationDedupeKey(ref: CitationRef, url: string | null, source: string): string {
+  if (!url) return `s:${source.toLowerCase()}|${str(ref.as_of) ?? ''}`;
+  const base = `u:${normalizeUrl(url)}`;
+  return isPredictionMarket(ref) ? `${base}||${(str(ref.ref) ?? '').toLowerCase()}` : base;
+}
+
+/**
+ * The market question behind a `PM:<slug>` ref, as a readable sentence:
+ * `PM:will-the-us-invade-iran-before-2027` → "Will the us invade iran before
+ * 2027?". Trailing id segments the feed appends (`-20260917`, `-999-671-939`)
+ * are dropped; a year (`-2027`) is kept. Null when there is nothing readable.
+ */
+export function marketQuestion(ref: string | null | undefined): string | null {
+  const t = str(ref);
+  if (!t) return null;
+  const slug = t.replace(/^PM:/i, '').replace(/(?:-\d{3}){2,}$/, '').replace(/-\d{6,}$/, '');
+  const words = slug.split(/[-_]+/).filter(Boolean);
+  if (!words.length) return null;
+  let q = words.join(' ');
+  q = q.charAt(0).toUpperCase() + q.slice(1);
+  if (/^(will|is|are|does|do|did|can|could|should|would|has|have)\b/i.test(q)) q += '?';
+  return q.length > 140 ? q.slice(0, 139) + '…' : q;
+}
+
+/** "N passages": how many distinct tags (chunks / passages) one reference
+ *  groups. 1 for a plain citation. */
+export function passageCount(entry: CitationEntry): number {
+  return new Set(entry.tags.map(t => t.toUpperCase())).size;
+}
+
 /**
  * Number every citation tag found in `texts`, in order.
  *
@@ -231,9 +282,7 @@ export function buildCitationIndex(
 
       const url = safeUrl(ref.url);
       const source = str(ref.source) ?? str(ref.ref) ?? tag;
-      const dedupeKey = url
-        ? `u:${normalizeUrl(url)}`
-        : `s:${source.toLowerCase()}|${str(ref.as_of) ?? ''}`;
+      const dedupeKey = citationDedupeKey(ref, url, source);
 
       let entry = byDedupeKey.get(dedupeKey);
       if (!entry) {
@@ -247,6 +296,7 @@ export function buildCitationIndex(
           asOfKind: str(ref.as_of_kind),
           type: str(ref.type),
           ref: str(ref.ref),
+          question: isPredictionMarket(ref) ? marketQuestion(ref.ref) : null,
         };
         entries.push(entry);
         byDedupeKey.set(dedupeKey, entry);
@@ -363,8 +413,60 @@ function resolvedMarker(hit: TagHit, more: readonly number[]): string {
  * derived from the raw prose (buildCitationIndex / citedEntries), which still
  * contains every tag, so a truncated run still lists all of its sources.
  */
+/** Shortest stretch of consecutive reference numbers folded into one
+ *  `[3–5]` marker. Two numbers stay `[3][4]` — folding them saves nothing. */
+export const CITATION_RANGE_MIN = 3;
+
+/** Distinct numbers → display units: `[1,3,4,5,8]` → `[[1],[3,4,5],[8]]`. */
+function foldRanges(sorted: readonly number[]): number[][] {
+  const units: number[][] = [];
+  let cur: number[] = [];
+  for (const n of sorted) {
+    if (cur.length && n === cur[cur.length - 1] + 1) { cur.push(n); continue; }
+    if (cur.length) units.push(cur);
+    cur = [n];
+  }
+  if (cur.length) units.push(cur);
+  // a short consecutive stretch is printed as separate markers
+  return units.flatMap(u => (u.length >= CITATION_RANGE_MIN ? [u] : u.map(n => [n])));
+}
+
+/** One folded `[3–5]` marker. It links to the FIRST reference of the range
+ *  (the rest follow it in the References list); `data-range` lists every
+ *  number it stands for, so the fold stays auditable in the DOM. */
+function rangeMarker(nums: readonly number[], byNumber: ReadonlyMap<number, TagHit>, more: readonly number[]): string {
+  const first = byNumber.get(nums[0]) as TagHit;
+  const sources = nums.map(n => (byNumber.get(n)?.entry as CitationEntry).source);
+  const title = `${nums[0]}–${nums[nums.length - 1]}: ${sources.join('; ')}`;
+  return `<sup class="qp-cite"><a href="#${CITATION_ANCHOR_PREFIX}${nums[0]}"` +
+    ` class="qp-cite-link qp-cite-range" title="${escapeAttr(title.length > 300 ? title.slice(0, 299) + '…' : title)}"` +
+    ` data-tag="${escapeAttr(first.tag)}" data-range="${nums.join(',')}"` +
+    (more.length ? ` data-more="${more.join(',')}"` : '') +
+    `>[${nums[0]}–${nums[nums.length - 1]}]</a></sup>`;
+}
+
 function renderMarkerRun(run: readonly TagHit[], text: string): string {
   if (!run[0].entry) return unresolvedMarker(run[0].tag);
+
+  // Range folding comes FIRST, then the cap: `[3][4][5][9]` is two units,
+  // `[3–5][9]`, not three markers with the fourth capped away. Only a run that
+  // actually contains a foldable stretch is reordered (ascending, like any
+  // folded citation list); every other run keeps the writer's order and
+  // separators exactly as before.
+  const firstHit = new Map<number, TagHit>();
+  for (const h of run) {
+    const n = (h.entry as CitationEntry).n;
+    if (!firstHit.has(n)) firstHit.set(n, h);
+  }
+  const units = foldRanges([...firstHit.keys()].sort((a, b) => a - b));
+  if (units.some(u => u.length > 1)) {
+    const kept = units.slice(0, CITATION_RUN_MAX);
+    const more = units.slice(CITATION_RUN_MAX).flat();
+    return kept.map((u, i) => {
+      const extra = i === kept.length - 1 ? more : [];
+      return u.length > 1 ? rangeMarker(u, firstHit, extra) : resolvedMarker(firstHit.get(u[0]) as TagHit, extra);
+    }).join('');
+  }
 
   const kept: { hit: TagHit; gap: string }[] = [];
   const shown = new Set<number>();

@@ -37,6 +37,7 @@ const {
   buildCitationIndex, annotateCitations, renderCitedText, mergeCitationRows,
   EMPTY_CITATION_INDEX, safeUrl, citationRunDateKey, citedEntries,
   CITATION_RUN_MAX, citationAnchorTarget, CITATION_ANCHOR_PREFIX,
+  passageCount, marketQuestion,
 } = await import(pathToFileURL(bundle).href);
 
 /* ── the directive, bundled against @angular stubs ─────────────────────── */
@@ -335,26 +336,36 @@ test('run of 19 markers is capped at CITATION_RUN_MAX, every source still listed
   const idx = buildCitationIndex([src], refs);
   assert.equal(idx.entries.length, 6, 'all six sources are numbered');
 
+  // the six sources are numbered 1..6, so the run FOLDS before any cap applies
   const html = annotateCitations(src, idx);
-  const shown = markerNumbers(html);
-  assert.equal(shown.length, CITATION_RUN_MAX, `19 markers become ${CITATION_RUN_MAX}`);
-  assert.deepEqual(shown, ['1', '2', '3'], 'the FIRST distinct three, in the order written');
-  assert.equal(html.replace(/<[^>]+>/g, ''), 'Rates stayed restrictive [1][2][3] through the quarter.',
-    'the prose around the run is byte-identical');
-
-  // nothing silently disappears: the dropped numbers are on the last kept
-  // marker, and the References list still carries all six sources
-  assert.match(html, /data-more="4,5,6"/);
+  assert.equal(html.replace(/<[^>]+>/g, ''), 'Rates stayed restrictive [1–6] through the quarter.',
+    '19 markers become one folded range; the prose around it is byte-identical');
+  assert.match(html, /data-range="1,2,3,4,5,6"/);
+  assert.ok(!html.includes('data-more='), 'folding left nothing for the cap to drop');
   assert.deepEqual(citedEntries(idx, [src]).map(e => e.n), [1, 2, 3, 4, 5, 6],
     'every source in the run is still in the References list');
-  assert.ok(!/href="#qp-ref-[456]"/.test(html), 'the capped markers are gone from the prose');
+});
+
+test('run of non-consecutive references is capped at CITATION_RUN_MAX, every source still listed', () => {
+  // numbers 1,3,5,7,9 — nothing to fold, so the old cap behaviour holds
+  const refs = mergeCitationRows([{ refs: Object.fromEntries(
+    Array.from({ length: 10 }, (_, i) => [`MAC-F${i + 1}`,
+      { source: `FRED ${i + 1}`, url: `https://fred.stlouisfed.org/series/S${i + 1}`, type: 'series' }]),
+  ) }]);
+  const intro = 'Intro [MAC-F1] a [MAC-F2] b [MAC-F3] c [MAC-F4] d [MAC-F5] e [MAC-F6] f [MAC-F7] g [MAC-F8] h [MAC-F9] i [MAC-F10].';
+  const src = 'Run [MAC-F9][MAC-F1][MAC-F5][MAC-F3][MAC-F7] end.';
+  const idx = buildCitationIndex([intro, src], refs);
+  const html = annotateCitations(src, idx);
+  assert.deepEqual(markerNumbers(html), ['9', '1', '5'], 'the FIRST distinct three, in the order written');
+  assert.match(html, /data-more="3,7"/);
+  assert.deepEqual(citedEntries(idx, [src]).map(e => e.n), [1, 3, 5, 7, 9]);
 });
 
 test('run: capping counts DISTINCT references, not raw markers', () => {
   const src = '[POL-31][POL-31][POL-32][POL-32][POL-33][POL-33]';
   const idx = buildCitationIndex([src], RUN_REFS);
   const html = annotateCitations(src, idx);
-  assert.deepEqual(markerNumbers(html), ['1', '2', '3'], 'six markers, three references, none capped away');
+  assert.equal(html.replace(/<[^>]+>/g, ''), '[1–3]', 'six markers, three references, folded, none capped away');
   assert.ok(!html.includes('data-more='), 'nothing was dropped by the cap');
 });
 
@@ -447,11 +458,95 @@ test('only prefix + digits is claimed — nothing else can be smuggled into an i
 test('a capped run still points its surviving markers at real entries', () => {
   // data-more numbers are NOT rendered as links; whatever IS rendered must be
   // claimable by the click handler
-  const src = '[POL-31][POL-32][POL-33][MGT-4]';  // 4 distinct references, cap is 3
-  const idx = buildCitationIndex([src], RUN_REFS);
-  const hrefs = [...annotateCitations(src, idx).matchAll(/href="([^"]+)"/g)].map(m => m[1]);
+  const src = '[POL-31][POL-33][MGT-4][POL-32]';
+  const idx = buildCitationIndex(['[MGT-4] x [POL-32] y [POL-31] z [POL-33]', src], RUN_REFS);
+  // numbers: MGT-4=1, POL-32=2, POL-31=3, POL-33=4 → run {1,2,3,4} folds to [1–4]
+  const folded = [...annotateCitations(src, idx).matchAll(/href="([^"]+)"/g)].map(m => m[1]);
+  assert.deepEqual(folded, ['#qp-ref-1'], 'a folded range links to its first reference');
+  for (const h of folded) assert.ok(citationAnchorTarget(h));
+  // a run that cannot fold keeps the cap: 4 distinct, non-consecutive
+  const refs = mergeCitationRows([{ refs: Object.fromEntries(
+    [1, 2, 3, 4, 5, 6, 7].map(i => [`XX-${i}`, { source: `S${i}`, url: `https://ex.com/${i}` }])) }]);
+  const idx2 = buildCitationIndex(['[XX-1] a [XX-2] b [XX-3] c [XX-4] d [XX-5] e [XX-6] f [XX-7]'], refs);
+  const hrefs = [...annotateCitations('[XX-1][XX-3][XX-5][XX-7]', idx2).matchAll(/href="([^"]+)"/g)].map(m => m[1]);
   assert.equal(hrefs.length, CITATION_RUN_MAX);
   for (const h of hrefs) assert.ok(citationAnchorTarget(h), `${h} must be handled in-page`);
+});
+
+/* ── range folding, passages, prediction markets (2026-10-03) ─────────── */
+
+const FOLD_REFS = mergeCitationRows([{ refs: Object.fromEntries(
+  Array.from({ length: 9 }, (_, i) => [`POL-${i + 1}`,
+    { source: `Article ${i + 1}`, url: `https://news.example.com/a${i + 1}`, type: 'news' }]),
+) }]);
+const FOLD_INTRO = '[POL-1][POL-2] intro [POL-3] x [POL-4] y [POL-5] z [POL-6] w [POL-7] v [POL-8] u [POL-9].';
+
+test('fold: [3][4][5] renders as one [3–5] marker linked to the first', () => {
+  const idx = buildCitationIndex([FOLD_INTRO], FOLD_REFS);
+  const html = annotateCitations('Claim [POL-3][POL-4][POL-5].', idx);
+  assert.equal(html.replace(/<[^>]+>/g, ''), 'Claim [3–5].');
+  assert.match(html, /href="#qp-ref-3"/);
+  assert.match(html, /data-range="3,4,5"/);
+  assert.ok(citationAnchorTarget('#qp-ref-3'));
+});
+
+test('fold: writer order does not matter, repeats collapse, the rest stays separate', () => {
+  const idx = buildCitationIndex([FOLD_INTRO], FOLD_REFS);
+  const html = annotateCitations('Claim [POL-5], [POL-3][POL-9][POL-4][POL-3].', idx);
+  assert.equal(html.replace(/<[^>]+>/g, ''), 'Claim [3–5][9].');
+});
+
+test('fold: two consecutive numbers are NOT folded — [3][4] is as short as [3–4]', () => {
+  const idx = buildCitationIndex([FOLD_INTRO], FOLD_REFS);
+  const html = annotateCitations('Claim [POL-3][POL-4].', idx);
+  assert.deepEqual(markerNumbers(html), ['3', '4']);
+  assert.ok(!html.includes('data-range'));
+});
+
+test('fold first, then cap: units are capped, not raw numbers', () => {
+  const idx = buildCitationIndex([FOLD_INTRO], FOLD_REFS);
+  // {1,2,3} {5} {7} {9}: four units → the cap keeps three, drops 9
+  const html = annotateCitations('[POL-1][POL-2][POL-3][POL-5][POL-7][POL-9]', idx);
+  assert.equal(html.replace(/<[^>]+>/g, ''), '[1–3][5][7]');
+  assert.match(html, /data-more="9"/);
+  assert.equal(CITATION_RUN_MAX, 3);
+});
+
+test('passages: a reference grouping several tags reports N distinct passages', () => {
+  const refs = mergeCitationRows([{ refs: {
+    'POL-31': { source: 'Reuters', url: 'https://www.reuters.com/x', ref: 'doc-1' },
+    'POL-32': { source: 'Reuters', url: 'https://www.reuters.com/x', ref: 'doc-1' },
+    'POL-33': { source: 'Reuters', url: 'https://reuters.com/x/'.replace('reuters', 'www.reuters'), ref: 'doc-1' },
+    'POL-40': { source: 'AP', url: 'https://apnews.com/y' },
+  } }]);
+  const idx = buildCitationIndex(['a [POL-31] b [POL-32] c [pol-31] d [POL-33] e [POL-40]'], refs);
+  assert.equal(idx.entries.length, 2);
+  assert.equal(passageCount(idx.entries[0]), 3, 'three distinct chunk tags, one repeated in lower case');
+  assert.equal(passageCount(idx.entries[1]), 1);
+});
+
+test('polymarket: different markets under ONE event url are separate references', () => {
+  const refs = mergeCitationRows([{ module: 'political', refs: {
+    'PM-1': { ref: 'PM:will-delcy-rodrguez-be-the-leader-of-venezuela-end-of-2026', url: 'https://polymarket.com/event/venezuela-leader-end-of-2026', type: 'prediction-market', source: 'Polymarket', as_of: '2026-09-20T16:54:20Z' },
+    'PM-2': { ref: 'PM:will-nicols-maduro-be-the-leader-of-venezuela-end-of-2026', url: 'https://polymarket.com/event/venezuela-leader-end-of-2026', type: 'prediction-market', source: 'Polymarket', as_of: '2026-09-20T16:54:20Z' },
+    'PM-9': { ref: 'PM:will-nicols-maduro-be-the-leader-of-venezuela-end-of-2026', url: 'https://polymarket.com/event/venezuela-leader-end-of-2026/', type: 'prediction-market', source: 'Polymarket' },
+    'PM-11': { ref: 'PM:us-x-iran-ceasefire-continues-through-september-20-20260917', url: 'https://polymarket.com/event/us-iran-ceasefire', type: 'prediction-market', source: 'Polymarket' },
+    'PM-14': { ref: 'PM:bab-el-mandeb-strait-effectively-closed-by-september-30-999-671-939', url: 'https://polymarket.com/event/bab', source: 'Polymarket' },
+    'POL-1': { ref: 'art-1', url: 'https://www.reuters.com/z', type: 'news', source: 'Reuters' },
+    'POL-2': { ref: 'art-1-chunk-2', url: 'https://www.reuters.com/z', type: 'news', source: 'Reuters' },
+  } }]);
+  const idx = buildCitationIndex(['[PM-1] vs [PM-2] and again [PM-9]; [PM-11] [PM-14] news [POL-1] [POL-2]'], refs);
+  const n = idx.numbers;
+  assert.notEqual(n['PM-1'], n['PM-2'], 'two markets, two numbers — no contradictory odds under one');
+  assert.equal(n['PM-2'], n['PM-9'], 'the SAME market cited twice is still one reference');
+  assert.equal(n['POL-1'], n['POL-2'], 'articles still dedupe on the url alone');
+  const byN = Object.fromEntries(idx.entries.map(e => [e.n, e]));
+  assert.equal(byN[n['PM-1']].question, 'Will delcy rodrguez be the leader of venezuela end of 2026?');
+  assert.equal(byN[n['PM-11']].question, 'Us x iran ceasefire continues through september 20', 'date id suffix dropped');
+  assert.equal(byN[n['PM-14']].question, 'Bab el mandeb strait effectively closed by september 30', 'PM: ref alone marks a market');
+  assert.equal(byN[n['POL-1']].question, null, 'non-market refs carry no question');
+  assert.equal(marketQuestion('PM:will-the-us-invade-iran-before-2027'), 'Will the us invade iran before 2027?', 'years survive');
+  assert.equal(marketQuestion(null), null);
 });
 
 /* ── the click handler (CitationScrollDirective) ──────────────────────── */

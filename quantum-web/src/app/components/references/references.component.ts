@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { CITATION_ANCHOR_PREFIX, CitationEntry } from '../../services/citations';
+import { CITATION_ANCHOR_PREFIX, CitationEntry, passageCount } from '../../services/citations';
 
 /** The page's References list — the landing target for every inline `[n]`
  *  marker. One entry per SOURCE (a url cited by several tags appears once).
@@ -28,7 +28,10 @@ import { CITATION_ANCHOR_PREFIX, CitationEntry } from '../../services/citations'
               rel="noopener nofollow">{{ e.urlLabel }}</a></ng-container><ng-container
               *ngIf="e.asOf">, as of <span class="qp-ref-asof qp-mono"
               [attr.title]="e.asOfKind ? 'date kind: ' + e.asOfKind : null">{{ e.asOf }}</span></ng-container><ng-container
-              *ngIf="e.type"> ({{ e.type }})</ng-container></span>
+              *ngIf="e.type"> ({{ e.type }})</ng-container><span *ngIf="e.question"
+              class="qp-ref-question">{{ e.question }}</span><span *ngIf="passages(e) > 1"
+              class="qp-ref-passages qp-mono"
+              title="Distinct passages of this source cited on the page">{{ passages(e) }} passages</span></span>
         </li>
       </ol>
     </div>
@@ -67,10 +70,17 @@ import { CITATION_ANCHOR_PREFIX, CitationEntry } from '../../services/citations'
       border-bottom: 1px solid rgba(15, 84, 153, 0.35); }
     .qp-ref-url:hover { border-bottom-color: var(--oxford); }
     .qp-ref-asof { font-size: 0.78rem; color: var(--text-2); }
+    .qp-ref-question { display: block; color: var(--text); font-style: italic; }
+    .qp-ref-passages { margin-left: 8px; font-size: 0.7rem; color: var(--text-muted);
+      white-space: nowrap; }
   `],
 })
 export class ReferencesComponent {
   @Input() entries: CitationEntry[] | null = null;
+
+  passages(e: CitationEntry): number {
+    return passageCount(e);
+  }
 
   anchor(n: number): string {
     return `${CITATION_ANCHOR_PREFIX}${n}`;
