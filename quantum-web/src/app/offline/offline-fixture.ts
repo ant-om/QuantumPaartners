@@ -1,3 +1,5 @@
+import { OfflineFixture } from './offline-fixture.model';
+
 /** DEV-ONLY offline fixture hook.
  *
  *  In every committed build this is `null` and SupabaseService behaves exactly
@@ -8,15 +10,6 @@
  *
  *  The production configuration never references the .local file, so the
  *  fixture cannot reach a production bundle. */
-export interface OfflineFixture {
-  /** `stocks` row, as getStockByTicker returns it. */
-  stock: Record<string, unknown> & { id: string; ticker: string };
-  /** `stock_analyses` row in the shape getAnalysis selects (before cleaning). */
-  analysis: Record<string, unknown>;
-  /** raw_output per module key ('political', 'price', … 'fs'). */
-  chains: Record<string, unknown>;
-  /** citation_refs rows ({module, refs}) for the analysis run date. */
-  citationRows: unknown[];
-}
+export type { OfflineFixture };
 
 export const OFFLINE_FIXTURE: OfflineFixture | null = null;
