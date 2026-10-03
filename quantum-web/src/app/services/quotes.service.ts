@@ -12,7 +12,7 @@ export interface Quote {
 @Injectable({ providedIn: 'root' })
 export class QuotesService {
   private readonly base = (environment as { priceApiUrl?: string }).priceApiUrl
-    ?? 'https://quantum-price-prompt.up.railway.app';
+    ?? 'https://mr8mcdfzdb2lru6rvo6a4fds.136.243.177.156.sslip.io';
 
   /** Fetch live quotes for the given tickers. Resolves to [] on any failure
    *  so callers can fall back to placeholders — the tape must never error out. */
