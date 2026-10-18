@@ -38,7 +38,7 @@ type FormState = 'idle' | 'loading' | 'done' | 'duplicate' | 'invalid' | 'error'
     .nl-input { flex:1; min-width:0; background:var(--card); border:1px solid var(--border-strong);
       border-radius:var(--r-md); padding:11px 14px; font-family:var(--font-body);
       font-size:0.92rem; color:var(--text); outline:none; transition:border-color .2s, box-shadow .2s; }
-    .nl-input:focus { border-color:var(--oxford); box-shadow:0 0 0 3px rgba(15,84,153,0.12); }
+    .nl-input:focus { border-color:var(--oxford); box-shadow:0 0 0 3px rgba(79, 107, 76,0.12); }
     .nl-input::placeholder { color:var(--text-muted); }
     .nl-hp { position:absolute; left:-9999px; width:1px; height:1px; opacity:0; }
     .nl-msg { font-size:0.88rem; margin:6px 0 0; }

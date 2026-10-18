@@ -148,13 +148,13 @@ export class MetricChartsComponent implements OnChanges {
     const xAt = (i: number) => this.pad.l + (i / (n - 1)) * (this.W - this.pad.l - this.pad.r);
     const yAt = (v: number) => this.pad.t + (1 - (v - lo) / (hi - lo)) * (this.H - this.pad.t - this.pad.b);
 
-    this.priceLine = { points: hist.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.close).toFixed(1)}`).join(' '), color: '#0F5499', label: 'Close (30d)' };
+    this.priceLine = { points: hist.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.close).toFixed(1)}`).join(' '), color: '#4F6B4C', label: 'Close (30d)' };
 
     this.bollinger = bb ? { top: yAt(bb.upper), bottom: yAt(bb.lower) } : null;
     this.priceRefs = [];
     if (t) {
-      this.priceRefs.push({ y: yAt(t.SMA_50_last), color: '#0D7680', label: 'SMA 50' });
-      this.priceRefs.push({ y: yAt(t.SMA_200_last), color: '#8C847C', label: 'SMA 200' });
+      this.priceRefs.push({ y: yAt(t.SMA_50_last), color: '#4F6B4C', label: 'SMA 50' });
+      this.priceRefs.push({ y: yAt(t.SMA_200_last), color: '#7C878A', label: 'SMA 200' });
     }
     this.priceYTicks = this.ticks(lo, hi, yAt, v => `$${v.toFixed(0)}`);
     this.hasPrice = true;
@@ -192,7 +192,7 @@ export class MetricChartsComponent implements OnChanges {
     const n = series.length, h = 150;
     const xAt = (i: number) => this.pad.l + (i / (n - 1)) * (this.W - this.pad.l - this.pad.r);
     const yAt = (v: number) => this.pad.t + (1 - (v - lo) / (hi - lo)) * (h - this.pad.t - this.pad.b);
-    this.vixLine = { points: series.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.vix).toFixed(1)}`).join(' '), color: '#0D7680', label: 'VIX (30d)' };
+    this.vixLine = { points: series.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.vix).toFixed(1)}`).join(' '), color: '#4F6B4C', label: 'VIX (30d)' };
     this.vixYTicks = this.ticks(lo, hi, yAt, v => v.toFixed(0));
     this.hasVix = true;
   }

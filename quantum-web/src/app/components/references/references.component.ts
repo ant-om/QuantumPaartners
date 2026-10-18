@@ -67,7 +67,7 @@ import { CITATION_ANCHOR_PREFIX, CitationEntry, passageCount } from '../../servi
     .qp-ref-text { min-width: 0; overflow-wrap: anywhere; }
     .qp-ref-source { color: var(--text); font-weight: 600; }
     .qp-ref-url, .qp-ref-url:visited { color: var(--oxford); text-decoration: none;
-      border-bottom: 1px solid rgba(15, 84, 153, 0.35); }
+      border-bottom: 1px solid rgba(79, 107, 76, 0.35); }
     .qp-ref-url:hover { border-bottom-color: var(--oxford); }
     .qp-ref-asof { font-size: 0.78rem; color: var(--text-2); }
     .qp-ref-question { display: block; color: var(--text); font-style: italic; }

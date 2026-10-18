@@ -56,11 +56,11 @@
   line-height: 1.2;
   white-space: nowrap;
 }
-.qp-score-pill.bear      { color: var(--bear); background: rgba(168, 30, 30, 0.1);  border-color: rgba(168, 30, 30, 0.32); }
-.qp-score-pill.lean-bear { color: var(--bear); background: rgba(168, 30, 30, 0.04); border-color: rgba(168, 30, 30, 0.2); }
+.qp-score-pill.bear      { color: var(--bear); background: rgba(179, 54, 44, 0.1);  border-color: rgba(179, 54, 44, 0.32); }
+.qp-score-pill.lean-bear { color: var(--bear); background: rgba(179, 54, 44, 0.04); border-color: rgba(179, 54, 44, 0.2); }
 .qp-score-pill.neutral   { color: var(--text-2); background: var(--bg-wash); }
-.qp-score-pill.lean-bull { color: var(--bull); background: rgba(20, 123, 88, 0.05); border-color: rgba(20, 123, 88, 0.22); }
-.qp-score-pill.bull      { color: var(--bull); background: rgba(20, 123, 88, 0.11); border-color: rgba(20, 123, 88, 0.34); }
+.qp-score-pill.lean-bull { color: var(--bull); background: rgba(63, 122, 74, 0.05); border-color: rgba(63, 122, 74, 0.22); }
+.qp-score-pill.bull      { color: var(--bull); background: rgba(63, 122, 74, 0.11); border-color: rgba(63, 122, 74, 0.34); }
 .qp-score-pill.none      { color: var(--text-muted); background: var(--bg-wash); }
 @media (max-width: 640px) {
   .qp-takeaway-item { grid-template-columns: 1fr; gap: 4px; }

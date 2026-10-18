@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 9998;
-  background: rgba(51, 48, 46, 0.18);
+  background: rgba(27, 35, 38, 0.18);
 }
 
 .di-wrapper {
@@ -15,7 +15,7 @@
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--text);
-  box-shadow: 0 12px 32px -12px rgba(51, 48, 46, 0.25);
+  box-shadow: 0 12px 32px -12px rgba(27, 35, 38, 0.25);
 }
 
 /* ── Collapsed pill ─────────────────────────────────────── */

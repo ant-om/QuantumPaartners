@@ -65,9 +65,9 @@ interface TimelineSeries { key: string; label: string; points: string; color: st
         </div>
         <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="qp-svg">
           <line *ngFor="let t of yTicks" [attr.x1]="pad.l" [attr.x2]="W - pad.r"
-                [attr.y1]="t.y" [attr.y2]="t.y" stroke="rgba(51,48,46,0.08)" />
+                [attr.y1]="t.y" [attr.y2]="t.y" stroke="rgba(27, 35, 38,0.08)" />
           <text *ngFor="let t of yTicks" [attr.x]="pad.l - 6" [attr.y]="t.y + 3" text-anchor="end"
-                font-size="10" fill="#8C847C" font-family="'JetBrains Mono', monospace">{{ t.label }}</text>
+                font-size="10" fill="#7C878A" font-family="'IBM Plex Mono', monospace">{{ t.label }}</text>
           <polyline *ngFor="let s of timeline" [attr.points]="s.points" fill="none"
                     [attr.stroke]="s.color" stroke-width="1.8" />
         </svg>
@@ -153,10 +153,10 @@ export class AnalysisChartsComponent implements OnChanges {
     const yAt = (v: number) => this.pad.t + (1 - v / 100) * (this.H - this.pad.t - this.pad.b);
 
     const series: { key: string; label: string; color: string }[] = [
-      { key: 'summary_score', label: 'Overall', color: '#990F3D' },
-      { key: 'price', label: 'Price', color: '#0F5499' },
-      { key: 'financial', label: 'Financials', color: '#0D7680' },
-      { key: 'sentiment', label: 'Sentiment', color: '#B45309' },
+      { key: 'summary_score', label: 'Overall', color: '#C9922E' },
+      { key: 'price', label: 'Price', color: '#4F6B4C' },
+      { key: 'financial', label: 'Financials', color: '#1C2A2E' },
+      { key: 'sentiment', label: 'Sentiment', color: '#5B7C8A' },
     ];
     for (const s of series) {
       const pts = rows

@@ -26,11 +26,13 @@ import { Component, HostListener } from '@angular/core';
       z-index: 100;
       transition: background 0.3s, border-color 0.3s;
       border-bottom: 1px solid transparent;
+      background: var(--slate);
     }
     .qp-nav--scrolled {
-      background: rgba(251, 242, 231, 0.96);
-      border-bottom-color: var(--border);
+      background: rgba(28, 42, 46, 0.97);
+      border-bottom-color: rgba(244, 245, 242, 0.12);
     }
+    .qp-nav .qp-brand-name { color: #F4F5F2; }
     .qp-nav-inner {
       max-width: 1240px;
       margin: 0 auto;
@@ -45,11 +47,11 @@ import { Component, HostListener } from '@angular/core';
       gap: 9px;
       font-size: 0.66rem;
       letter-spacing: 0.2em;
-      color: var(--text-muted);
+      color: #A9B7B9;
     }
     .qp-nav-pulse {
       width: 6px; height: 6px; border-radius: 50%;
-      background: var(--claret);
+      background: var(--brass);
     }
     .qp-nav-right {
       display: inline-flex;
@@ -60,16 +62,16 @@ import { Component, HostListener } from '@angular/core';
       font-size: 0.66rem;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: var(--text-muted);
+      color: #A9B7B9;
       text-decoration: none;
-      border: 1px solid var(--border);
+      border: 1px solid rgba(244, 245, 242, 0.22);
       border-radius: 999px;
       padding: 6px 14px;
       transition: color 0.2s, border-color 0.2s;
     }
     .qp-nav-about:hover {
-      color: var(--claret);
-      border-color: var(--claret);
+      color: #F4F5F2;
+      border-color: var(--brass);
     }
     @media (max-width: 560px) { .qp-nav-tag { display: none; } }
   `],
